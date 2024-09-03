@@ -1,10 +1,9 @@
-# character_manager.py
 import json
 import os
 from typing import Dict, Any
 class CharacterManager:
-    def __init__(self):
-        self.character_cards_dir = os.path.join(os.path.dirname(__file__), 'res', 'character')
+    def __init__(self, character_cards_dir: str):
+        self.character_cards_dir = character_cards_dir
         self.character_cards = {}
     def load_character_card(self, character_id: str):
         """加载角色卡文件"""
@@ -22,5 +21,3 @@ class CharacterManager:
         if character_id not in self.character_cards:
             self.load_character_card(character_id)
         return self.character_cards[character_id].get(key, None)
-# 创建一个全局实例
-character_manager = CharacterManager()
