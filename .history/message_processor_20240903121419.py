@@ -12,9 +12,9 @@ async def process_message(event, recent_messages: List[Dict], message_builder: M
     recent_messages.append({"role": "user", "content": message_content})
     if len(recent_messages) > plugin_config.CONTEXT_MESSAGE_COUNT:
         recent_messages.pop(0)
+    # 尝试使用 MessageBuilder 构建消息
     try:
-        # 使用 MessageBuilder 构建消息
-        messages = message_builder.build_message({"user": event.sender.nickname})
+        messages = message_builder.build_message(event.group_id, {"user": event.sender.nickname})
         messages.extend(recent_messages)
         # 调用 LLM 生成回复
         response = await llm_generator.generate_response(
@@ -24,13 +24,6 @@ async def process_message(event, recent_messages: List[Dict], message_builder: M
             max_tokens=plugin_config.LLM_MAX_TOKENS
         )
         return response
-    except FileNotFoundError as e:
-        return f"文件加载失败，请检查配置文件和相关资源文件。错误信息：{str(e)}"
-    except ValueError as e:
-        return f"配置或数据格式错误，请检查相关文件。错误信息：{str(e)}"
-    except PermissionError as e:
-        return f"无权限访问某些文件，请检查文件权限。错误信息：{str(e)}"
-    except ConnectionError as e:
-        return f"网络连接失败，请检查网络状态和API设置。错误信息：{str(e)}"
     except Exception as e:
-        return f"发生未知错误，请联系管理员。错误信息：{str(e)}"
+        # 如果预设加载失败，返回错误提示
+        return f"预设加载失败，请检查配置文件。错误信息：{str(e)}"

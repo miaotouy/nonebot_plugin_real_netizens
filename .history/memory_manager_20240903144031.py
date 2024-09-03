@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from nonebot_plugin_datastore import get_session
 from nonebot.adapters.onebot.v11 import Bot
-from .db.models import Message
+from .models import Message
 from typing import List, Dict
 import logging
 logger = logging.getLogger(__name__)

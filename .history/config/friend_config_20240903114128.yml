@@ -1,0 +1,11 @@
+# config/friend_config.yml
+LLM_MODEL: gemini-1.5-flash-exp-0827
+LLM_MAX_TOKENS: 4096
+LLM_TEMPERATURE: 0.9
+CHARACTER_CONFIG:
+  personality: 温柔、体贴、善解人意 #只是示例
+  interests: 文学、音乐、旅行
+TRIGGER_PROBABILITY: 0.6
+TRIGGER_MESSAGE_INTERVAL: 3
+CONTEXT_MESSAGE_COUNT: 5
+GROUP_CONTEXT_MAX_LENGTH: 20  # 新增：群聊消息上下文条数上限

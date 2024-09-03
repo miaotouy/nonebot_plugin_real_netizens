@@ -7,15 +7,17 @@ class Config(BaseSettings):
     # 从 .env 文件获取 API 配置
     LLM_API_BASE: str = Field(default="https://api.openai.com", env="LLM_API_BASE")
     LLM_API_KEY: str = Field(default="", env="LLM_API_KEY")
+
     # 其他配置项保持不变
     LLM_MODEL: str = "gemini-1.5-pro-001"
     LLM_MAX_TOKENS: int = 4096
     LLM_TEMPERATURE: float = 0.7
-    # 触发概率（0 到 1 之间）
+    CHARACTER_CONFIG: Dict[str, Any] = {
+        "personality": "友好、幽默、略带调皮",
+        "interests": "科技、动漫、美食"
+    }
     TRIGGER_PROBABILITY: float = 0.5
-    # 触发消息数量间隔
     TRIGGER_MESSAGE_INTERVAL: int = 5
-    # 保留的上下文消息数量
     CONTEXT_MESSAGE_COUNT: int = 30
     @classmethod
     def from_yaml(cls, file_path: str = "config/friend_config.yml") -> "Config":
