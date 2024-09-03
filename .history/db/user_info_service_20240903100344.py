@@ -1,10 +1,13 @@
+# user_info_service.py
 from datetime import datetime
 from typing import Optional
-from nonebot.adapters import Bot, Event
+from nonebot.adapters import Bot, Event, Message
 from nonebot_plugin_datastore import get_session
 from nonebot_plugin_userinfo import get_user_info, UserInfo
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
+# 从你的项目中引入数据库操作函数和模型定义
 from .database import get_user, create_user, update_user, get_group, create_group, get_group_user, create_group_user
-from . import User, Group, GroupUser
+from .models import User, Group, GroupUser
 async def save_user_info(bot: Bot, event: Event):
     """保存用户信息到数据库"""
     user_id = event.get_user_id()
@@ -20,7 +23,9 @@ async def save_user_info(bot: Bot, event: Event):
                 user_info.user_avatar.get_url() if user_info.user_avatar else None,
                 user_info.user_displayname,
                 user_info.user_remark,
-                user_info.user_gender
+                user_info.user_gender,
+                None,  # 初始化 last_message 为 None
+                None   # 初始化 last_message_time 为 None
             )
         else:
             await update_user(
@@ -33,7 +38,6 @@ async def save_user_info(bot: Bot, event: Event):
                 remark=user_info.user_remark,
                 gender=user_info.user_gender
             )
-
         # 检查 event 是否有 group_id 和 group_name 属性，避免 AttributeError
         if hasattr(event, 'group_id') and hasattr(event, 'group_name'):
             group_id = event.group_id
@@ -43,8 +47,7 @@ async def save_user_info(bot: Bot, event: Event):
             group_user: Optional[GroupUser] = await get_group_user(session, group.group_id, user.user_id)
             if not group_user:
                 await create_group_user(session, group.group_id, user.user_id, user_info.user_displayname)
-
         # 如果是消息事件，更新用户的最新消息
-        if hasattr(event, 'get_message'):
-            message = event.get_message()
+        if isinstance(event, (GroupMessageEvent, PrivateMessageEvent)):
+            message: Message = event.get_message()
             await update_user(session, user, last_message=str(message), last_message_time=datetime.now())
