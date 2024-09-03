@@ -1,0 +1,2 @@
+# nonebot_plugin_real_netizens
+目标是足够拟人的在群里活动
