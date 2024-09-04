@@ -1,8 +1,11 @@
 # config.py
-from typing import Dict, Any
-from pydantic import BaseSettings, Field
-from nonebot import get_driver
+from typing import List
+
 import yaml
+from nonebot import get_driver
+from pydantic import BaseSettings, Field
+
+
 class Config(BaseSettings):
     # 从 .env 文件获取 API 配置
     LLM_API_BASE: str = Field(default="https://api.openai.com", env="LLM_API_BASE")
@@ -17,6 +20,8 @@ class Config(BaseSettings):
     TRIGGER_MESSAGE_INTERVAL: int = 5
     # 保留的上下文消息数量
     CONTEXT_MESSAGE_COUNT: int = 30
+    # 管理员账号获取
+    superusers: List[str] = Field(default_factory=list, env="SUPERUSERS")
     @classmethod
     def from_yaml(cls, file_path: str = "config/friend_config.yml") -> "Config":
         try:
@@ -34,4 +39,4 @@ class Config(BaseSettings):
             print(f"解析配置文件 {file_path} 时出错：{e}")
             return cls()
 # 全局配置对象
-plugin_config = Config.from_yaml()
+plugin_config = Config.parse_obj(get_driver().config)

@@ -1,10 +1,15 @@
 from datetime import datetime
 from typing import Optional
+
 from nonebot.adapters import Bot, Event
 from nonebot_plugin_datastore import get_session
-from nonebot_plugin_userinfo import get_user_info, UserInfo
-from .database import get_user, create_user, update_user, get_group, create_group, get_group_user, create_group_user
-from . import User, Group, GroupUser
+from nonebot_plugin_userinfo import UserInfo, get_user_info
+
+from . import Group, GroupUser, User
+from .database import (create_group, create_group_user, create_user, get_group,
+                       get_group_user, get_user, update_user)
+
+
 async def save_user_info(bot: Bot, event: Event):
     """保存用户信息到数据库"""
     user_id = event.get_user_id()

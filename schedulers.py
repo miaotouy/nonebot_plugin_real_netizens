@@ -1,14 +1,19 @@
 # schedulers.py
 import time
-from nonebot import require, get_driver
+
+from nonebot import get_driver, require
+
+from .character_manager import character_manager
 from .config import Config
 from .group_config_manager import group_config_manager
-from .message_builder import MessageBuilder
-from .character_manager import character_manager
-from .message_processor import process_message
 from .memory_manager import memory_manager
+from .message_builder import MessageBuilder
+from .message_processor import process_message
+
 scheduler = require("nonebot_plugin_apscheduler").scheduler
 plugin_config = Config.parse_obj(get_driver().config)
+
+
 @scheduler.scheduled_job("cron", hour=8, minute=0)
 async def morning_greeting():
     bot = get_driver().bots.values()[0]  # 获取第一个机器人实例
@@ -25,6 +30,8 @@ async def morning_greeting():
         greeting, _ = await process_message({"group_id": group_id}, message_builder, character_manager)
         if greeting:
             await bot.send_group_msg(group_id=group_id, message=greeting)
+
+
 @scheduler.scheduled_job("interval", minutes=30)
 async def check_inactive_chats():
     bot = get_driver().bots.values()[0]

@@ -1,21 +1,32 @@
 # message_processor.py
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 from nonebot import get_driver
+from nonebot_plugin_datastore import get_session
+
 from .config import Config
+from .db.database import get_recent_messages
 from .llm_generator import llm_generator
 from .message_builder import MessageBuilder
+
 plugin_config = Config.parse_obj(get_driver().config)
-async def process_message(event, recent_messages: List[Dict], message_builder: MessageBuilder) -> Optional[str]:
+
+
+async def process_message(event, message_builder: MessageBuilder) -> Optional[str]:
     # 获取消息内容
     message_content = event.get_plaintext()
-    # 添加消息到上下文
-    recent_messages.append({"role": "user", "content": message_content})
-    if len(recent_messages) > plugin_config.CONTEXT_MESSAGE_COUNT:
-        recent_messages.pop(0)
     try:
+        # 获取最近的消息
+        async with get_session() as session:
+            recent_messages = await get_recent_messages(session, event.group_id, limit=plugin_config.CONTEXT_MESSAGE_COUNT)
+            context = [{"role": "user" if msg.user_id != event.self_id else "assistant",
+                        "content": msg.content} for msg in reversed(recent_messages)]
         # 使用 MessageBuilder 构建消息
-        messages = message_builder.build_message({"user": event.sender.nickname})
-        messages.extend(recent_messages)
+        messages = message_builder.build_message(
+            {"user": event.sender.nickname})
+        messages.extend(context)
+        # 添加当前消息到上下文
+        messages.append({"role": "user", "content": message_content})
         # 调用 LLM 生成回复
         response = await llm_generator.generate_response(
             messages=messages,
