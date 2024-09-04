@@ -17,6 +17,7 @@ from .character_manager import CharacterManager
 from .config import Config, plugin_config
 from .db.database import add_message, delete_old_messages, get_recent_messages
 from .group_config_manager import GroupConfig, group_config_manager
+from .image_processor import image_processor
 from .llm_generator import llm_generator
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
@@ -71,15 +72,30 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
     character_id = group_config.character_id
     if not character_id:
         return
+
     message = event.get_message()
+    text_content = ""
+    image_descriptions = []
+    # 处理消息中的文本和图片
+    for segment in message:
+        if segment.type == "text":
+            text_content += segment.data['text']
+        elif segment.type == "image":
+            is_new, image_info = await image_processor.process_image(segment)
+            if image_info:
+                image_descriptions.append(
+                    f"[图片描述: {image_info['description']}]{'（这是一个表情包）' if image_info['is_meme'] else ''}")
+    # 合并文本内容和图片描述
+    full_content = text_content + " ".join(image_descriptions)
     # 保存消息到数据库
-    await add_message(group_id, user_id, str(message))
+    await add_message(group_id, user_id, full_content)
     # 触发机制检查
-    if await check_trigger(group_id, message, group_config):
+    if await check_trigger(group_id, full_content, group_config):
         user_impression = await memory_manager.get_impression(group_id, user_id, character_id)
         recent_messages = await memory_manager.get_recent_messages(group_id, limit=plugin_config.CONTEXT_MESSAGE_COUNT)
+
         # 行为决策
-        behavior_decision = await decide_behavior(str(message), recent_messages, character_manager.get_character_info(character_id), user_impression)
+        behavior_decision = await decide_behavior(full_content, recent_messages, character_manager.get_character_info(character_id), user_impression)
         if behavior_decision["should_reply"]:
             context = {
                 "user": event.sender.nickname,
@@ -101,7 +117,6 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 # 更新印象
                 new_impression = parsed_response["impression_update"]
                 await memory_manager.update_impression(group_id, user_id, character_id, new_impression)
-
                 # 可以选择记录内部想法和行为决策理由
                 logger.debug(
                     f"Internal thoughts: {parsed_response['internal_thoughts']}")
@@ -110,9 +125,10 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
             except json.JSONDecodeError:
                 logger.error(
                     f"Failed to parse LLM response as JSON: {response}")
-
     # 更新记忆
-    await memory_manager.update_memory(group_id, user_id, str(message))
+    await memory_manager.update_memory(group_id, user_id, full_content)
+
+
 # 入群欢迎消息
 welcome_handler = on_notice(priority=5)
 

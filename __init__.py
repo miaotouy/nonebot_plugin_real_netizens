@@ -1,12 +1,12 @@
+import nonebot
 from nonebot import get_driver, require
 from nonebot.adapters.onebot.v11 import Bot
+from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
 
 # 导入其他模块
 from .character_manager import CharacterManager
-# 导入配置
 from .config import Config
-# 导入数据库相关模块
 from .db.database import init_database
 from .db.user_info_service import save_user_info
 from .group_config_manager import group_config_manager
@@ -22,6 +22,10 @@ __plugin_meta__ = PluginMetadata(
     description="基于大语言模型的AI虚拟群友插件",
     usage="自动参与群聊，无需额外命令",
     config=Config,
+    extra={
+        "version": "1.0.0",
+        "author": "Your Name",
+    },
 )
 # 加载配置
 global_config = get_driver().config
@@ -32,29 +36,31 @@ require("nonebot_plugin_txt2img")
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_userinfo")
 # 初始化组件
-character_manager = CharacterManager(
-    character_cards_dir=plugin_config.CHARACTER_CARDS_DIR)
+character_manager = CharacterManager(character_cards_dir=plugin_config.CHARACTER_CARDS_DIR)
 llm_generator.init()
+# 版本检查
+if not nonebot.__version__.startswith("2."):
+    raise ValueError("本插件仅支持 Nonebot2")
 # 插件初始化函数
-
-
 @get_driver().on_startup
 async def init_plugin():
-    # 初始化数据库
-    await init_database()
-
-    # 初始化群组配置
-    await group_config_manager.load_configs()
-
-    # 初始化角色管理器
-    await character_manager.load_characters()
-
-    # 设置机器人ID（假设只有一个机器人实例）
-    bot = list(get_driver().bots.values())[0]
-    await memory_manager.set_bot_id(bot)
-
-    # 其他初始化逻辑...
-    print("AI虚拟群友插件初始化完成")
+    try:
+        # 初始化数据库
+        await init_database()
+        # 初始化群组配置
+        await group_config_manager.load_configs()
+        # 初始化角色管理器
+        await character_manager.load_characters()
+        # 设置机器人ID（假设只有一个机器人实例）
+        bot = list(get_driver().bots.values())[0]
+        await memory_manager.set_bot_id(bot)
+        # 验证关键配置
+        if not plugin_config.LLM_API_KEY:
+            logger.warning("LLM API密钥未设置，部分功能可能无法正常工作")
+        logger.info("AI虚拟群友插件初始化完成")
+    except Exception as e:
+        logger.error(f"AI虚拟群友插件初始化失败：{str(e)}")
+        raise
 # 注册事件处理器
 get_driver().on_message()(message_handler)
 get_driver().on_notice()(welcome_handler)
@@ -71,4 +77,6 @@ __all__ = [
     "memory_manager",
     "process_message",
     "save_user_info",
+    "message_handler",
+    "welcome_handler",
 ]
