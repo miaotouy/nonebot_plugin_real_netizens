@@ -22,24 +22,36 @@ class MessageProcessor:
     def __init__(self):
         self.message_builder = MessageBuilder()
 
-    async def process(self, event: GroupMessageEvent) -> Optional[str]:
+    async def process_message(self, event: GroupMessageEvent, character_id: str) -> Optional[str]:
+        # 这里使用之前定义的第二个 process 方法的内容
         group_id = event.group_id
         user_id = event.user_id
-        message_content = event.get_plaintext().strip()
-        if not message_content:
+        message = event.message
+        text_content = ""
+        image_content = []
+        for segment in message:
+            if segment.type == "text":
+                text_content += segment.data['text']
+            elif segment.type == "image":
+                is_new, image_info = await image_processor.process_image(segment)
+                image_content.append(image_info)
+        if not text_content and not image_content:
             logger.warning(
                 f"Received empty message from user {user_id} in group {group_id}")
             return None
-        group_config = group_config_manager.get_group_config(group_id)
-        character_id = group_config.character_id
         try:
             context = await self._build_context(group_id, user_id, character_id)
             messages = self.message_builder.build_message(context)
-            messages.append({"role": "user", "content": message_content})
+            if text_content:
+                messages.append({"role": "user", "content": text_content})
+            for image in image_content:
+                messages.append({
+                    "role": "user",
+                    "content": f"[图片描述: {image['description']}]{'（这是一个表情包）' if image['is_meme'] else ''}"
+                })
             response = await self._generate_llm_response(messages)
-
             if response:
-                await self._update_memory(group_id, user_id, character_id, message_content, response)
+                await self._update_memory(group_id, user_id, character_id, str(message), response)
                 return response
             else:
                 logger.warning(

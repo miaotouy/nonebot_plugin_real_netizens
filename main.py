@@ -21,7 +21,7 @@ from .image_processor import image_processor
 from .llm_generator import llm_generator
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
-from .message_processor import process_message
+from .message_processor import message_processor
 
 logger = logging.getLogger(__name__)
 # 初始化组件
@@ -83,8 +83,10 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
         elif segment.type == "image":
             is_new, image_info = await image_processor.process_image(segment)
             if image_info:
-                image_descriptions.append(
-                    f"[图片描述: {image_info['description']}]{'（这是一个表情包）' if image_info['is_meme'] else ''}")
+                description = f"[图片描述: {image_info['description']}]"
+                if image_info['is_meme']:
+                    description += f"[表情包情绪: {image_info['emotion_tag']}]"
+                image_descriptions.append(description)
     # 合并文本内容和图片描述
     full_content = text_content + " ".join(image_descriptions)
     # 保存消息到数据库
@@ -109,7 +111,7 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 world_info_files=group_config.world_info_paths,
                 character_id=character_id
             )
-            response = await process_message(event, recent_messages, message_builder, context)
+            response = await message_processor(event, recent_messages, message_builder, context)
             try:
                 parsed_response = json.loads(response)
                 # 发送实际回复
@@ -148,7 +150,7 @@ async def handle_group_increase(bot: Bot, event: GroupIncreaseNoticeEvent):
         world_info_files=group_config.world_info_paths,
         character_id=character_id
     )
-    welcome_msg = await process_message(event, [], message_builder, context)
+    welcome_msg = await message_processor(event, [], message_builder, context)
     if welcome_msg:
         await bot.send(event=event, message=welcome_msg)
 # 定时任务
@@ -170,7 +172,7 @@ async def morning_greeting():
             world_info_files=group_config.world_info_paths,
             character_id=character_id
         )
-        greeting = await process_message(None, [], message_builder, context)
+        greeting = await message_processor(None, [], message_builder, context)
         if greeting:
             await bot.send_group_msg(group_id=group_id, message=greeting)
 
@@ -193,7 +195,7 @@ async def check_inactive_chats():
                 world_info_files=group_config.world_info_paths,
                 character_id=character_id
             )
-            revival_msg = await process_message(None, [], message_builder, context)
+            revival_msg = await message_processor(None, [], message_builder, context)
             if revival_msg:
                 await bot.send_group_msg(group_id=group_id, message=revival_msg)
 
