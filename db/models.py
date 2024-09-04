@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import (Column, DateTime, ForeignKey, Index, Integer, String,
-                        Text)
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer,
+                        String, Text)
 from sqlalchemy.orm import relationship
 
 
@@ -62,4 +62,18 @@ def init_models(plugin_data):
         __table_args__ = (
             Index('idx_message_timestamp', 'timestamp'),
         )
-    return User, Group, GroupUser, Message
+
+    class Impression(db.Model):
+        __tablename__ = 'impressions'
+        id = Column(Integer, primary_key=True)
+        group_id = Column(Integer, index=True)
+        user_id = Column(Integer, index=True)
+        character_id = Column(String, index=True)
+        content = Column(Text)
+        is_active = Column(Boolean, default=True)
+        deactivated_at = Column(DateTime, nullable=True)
+        created_at = Column(DateTime, default=datetime.utcnow)
+        updated_at = Column(DateTime, default=datetime.utcnow,
+                            onupdate=datetime.utcnow)
+    
+    return User, Group, GroupUser, Message, Impression

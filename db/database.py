@@ -5,7 +5,7 @@ from nonebot_plugin_datastore import get_session
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from . import Group, GroupUser, Message, User
+from . import Group, GroupUser, Impression, Message, User
 
 
 async def get_user(session: AsyncSession, user_id: int) -> Optional[User]:
@@ -103,3 +103,41 @@ async def delete_old_messages(session: AsyncSession, days: int = 30):
     stmt = delete(Message).where(Message.timestamp < cutoff_date)
     await session.execute(stmt)
     await session.commit()
+
+
+async def get_impression(session: AsyncSession, group_id: int, user_id: int, character_id: str) -> Optional[Impression]:
+    """获取用户印象"""
+    stmt = select(Impression).where(
+        Impression.group_id == group_id,
+        Impression.user_id == user_id,
+        Impression.character_id == character_id
+    )
+    result = await session.scalars(stmt)
+    return result.first()
+
+
+async def update_impression(session: AsyncSession, group_id: int, user_id: int, character_id: str, content: str) -> Impression:
+    """更新或创建用户印象"""
+    impression = await get_impression(session, group_id, user_id, character_id)
+    if impression:
+        impression.content = content
+        impression.updated_at = datetime.utcnow()
+    else:
+        impression = Impression(
+            group_id=group_id,
+            user_id=user_id,
+            character_id=character_id,
+            content=content
+        )
+        session.add(impression)
+    await session.commit()
+    return impression
+
+
+async def get_last_message_time(session: AsyncSession, group_id: int) -> Optional[datetime]:
+    """获取群组最后一条消息的时间"""
+    stmt = select(Message.timestamp).where(Message.group_id ==
+                                           group_id).order_by(Message.timestamp.desc()).limit(1)
+    result = await session.execute(stmt)
+    last_message = result.scalar_one_or_none()
+    return last_message

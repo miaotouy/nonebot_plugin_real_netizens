@@ -32,7 +32,7 @@ pip install nonebot_plugin_real_netizens
 ## 使用方法
 1. 在 Nonebot2 项目的 `.env` 文件中添加以下配置：
 ```env
-LLM_API_BASE=https://api.example.com
+LLM_API_BASE=https://api.example.com #设置openai格式的调用地址，比如中转站
 LLM_API_KEY=your-api-key
 ```
 2. 在 `bot.py` 中添加插件：
