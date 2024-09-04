@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from nonebot_plugin_datastore import get_session
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from . import Group, GroupUser, Impression, Message, User
+from . import Group, GroupUser, Image, Impression, Message, User
 
 
 async def get_user(session: AsyncSession, user_id: int) -> Optional[User]:
@@ -141,3 +141,26 @@ async def get_last_message_time(session: AsyncSession, group_id: int) -> Optiona
     result = await session.execute(stmt)
     last_message = result.scalar_one_or_none()
     return last_message
+
+
+async def add_image_record(image_info: Dict):
+    async with get_session() as session:
+        new_image = Image(**image_info)
+        session.add(new_image)
+        await session.commit()
+
+
+async def get_image_by_hash(image_hash: str) -> Optional[Dict]:
+    async with get_session() as session:
+        stmt = select(Image).where(Image.hash == image_hash)
+        result = await session.execute(stmt)
+        image = result.scalar_one_or_none()
+        if image:
+            return {
+                'file_path': image.file_path,
+                'file_name': image.file_name,
+                'hash': image.hash,
+                'description': image.description,
+                'is_meme': image.is_meme
+            }
+        return None

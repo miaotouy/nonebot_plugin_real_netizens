@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from nonebot_plugin_datastore import get_plugin_data
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer,
                         String, Text)
 from sqlalchemy.orm import relationship
@@ -13,6 +14,7 @@ def init_models(plugin_data):
         user_id = Column(Integer, primary_key=True, autoincrement=False)
         nickname = Column(String(64))
         avatar = Column(String(255))
+        avatar_description = Column(Text)
         last_active_time = Column(DateTime)
         displayname = Column(String(64))
         remark = Column(String(64))
@@ -76,4 +78,17 @@ def init_models(plugin_data):
         updated_at = Column(DateTime, default=datetime.utcnow,
                             onupdate=datetime.utcnow)
     
-    return User, Group, GroupUser, Message, Impression
+    class Image(db.Model):
+        __tablename__ = 'images'
+        id = Column(Integer, primary_key=True)
+        file_path = Column(String(255), unique=True, nullable=False)
+        file_name = Column(String(255), nullable=False)
+        hash = Column(String(64), unique=True, nullable=False)
+        description = Column(Text)
+        is_meme = Column(Boolean, default=False)
+        created_at = Column(DateTime, default=datetime.utcnow)
+
+    return User, Group, GroupUser, Message, Impression, Image
+
+plugin_data = get_plugin_data()
+User, Group, GroupUser, Message, Impression, Image = init_models(plugin_data)
