@@ -66,7 +66,7 @@ async def decide_behavior(message: str, recent_messages: List[Dict], character_i
         return {"should_reply": False, "reason": "解析错误", "reply_type": "none", "priority": 0}
 
 
-async def download_and_process_image(image_url: str) -> Tuple[bool, Optional[Dict]]:
+async def download_and_process_image(image_url: str) -> Optional[Dict]:
     async with aiohttp.ClientSession() as session:
         async with session.get(image_url) as resp:
             if resp.status != 200:
@@ -78,17 +78,17 @@ async def download_and_process_image(image_url: str) -> Tuple[bool, Optional[Dic
     # 检查数据库中是否存在相同哈希的图片
     existing_image = await get_image_by_hash(image_hash)
     if existing_image:
-        return False, existing_image
-    # 如果是新图片，保存并处理
+        return existing_image  # 直接返回已存在的图片信息
+    # 如果是新图片,保存并处理
     image_file = f"{image_hash}.jpg"
     image_path = os.path.join(plugin_config.IMAGE_SAVE_PATH, image_file)
     async with aiofiles.open(image_path, mode='wb') as f:
         await f.write(image_data)
-    # 使用 image_processor 处理图片
-    is_new, image_info = await image_processor.process_image(image_path, image_hash)
-    if is_new:
-        await add_image_record(image_info)
-    return is_new, image_info
+    # 使用 image_processor 处理新图片
+    image_info = await image_processor.process_image(image_path, image_hash)
+    # 保存新图片信息到数据库
+    await add_image_record(image_info)
+    return image_info  # 返回处理后的图片信息
 
 
 @message_handler.handle()
@@ -111,7 +111,7 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
         elif segment.type == "image":
             image_url = segment.data['url']
             try:
-                is_new, image_info = await download_and_process_image(image_url)
+                image_info = await download_and_process_image(image_url)
                 if image_info:
                     description = f"[图片描述: {image_info['description']}]"
                     if image_info['is_meme']:
