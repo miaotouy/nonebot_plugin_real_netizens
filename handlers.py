@@ -1,3 +1,4 @@
+# handlers.py
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
 from nonebot.permission import SUPERUSER
@@ -8,6 +9,7 @@ from .character_manager import character_manager
 from .config import plugin_config
 from .group_config_manager import group_config_manager
 from .memory_manager import memory_manager
+from .message_processor import message_processor
 
 # 列出可用预设
 list_presets = on_command("预设列表", rule=to_me(),
@@ -16,7 +18,7 @@ list_presets = on_command("预设列表", rule=to_me(),
 
 @list_presets.handle()
 async def handle_list_presets(bot: Bot, event: GroupMessageEvent):
-    presets = character_manager.get_preset_list()
+    presets = list(character_manager.get_all_characters())
     message = "可用的预设列表：\n" + "\n".join(presets)
     image = await Txt2Img.render(message)
     await list_presets.finish(MessageSegment.image(image))
@@ -43,7 +45,7 @@ list_worldbooks = on_command(
 
 @list_worldbooks.handle()
 async def handle_list_worldbooks(bot: Bot, event: GroupMessageEvent):
-    worldbooks = character_manager.get_worldbook_list()
+    worldbooks = list(character_manager.get_all_characters())
     message = "可用的世界书列表：\n" + "\n".join(worldbooks)
     image = await Txt2Img.render(message)
     await list_worldbooks.finish(MessageSegment.image(image))

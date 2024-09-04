@@ -1,10 +1,14 @@
 # main.py
+import hashlib
 import json
 import logging
+import os
 import random
 import time
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
+import aiofiles
+import aiohttp
 from nonebot import get_driver, on_command, on_message, on_notice, require
 from nonebot.adapters.onebot.v11 import (Bot, GroupIncreaseNoticeEvent,
                                          GroupMessageEvent, MessageSegment)
@@ -15,7 +19,8 @@ from nonebot_plugin_datastore import get_session
 
 from .character_manager import CharacterManager
 from .config import Config, plugin_config
-from .db.database import add_message, delete_old_messages, get_recent_messages
+from .db.database import (add_image_record, add_message, delete_old_messages,
+                          get_image_by_hash)
 from .group_config_manager import GroupConfig, group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
@@ -61,6 +66,31 @@ async def decide_behavior(message: str, recent_messages: List[Dict], character_i
         return {"should_reply": False, "reason": "解析错误", "reply_type": "none", "priority": 0}
 
 
+async def download_and_process_image(image_url: str) -> Tuple[bool, Optional[Dict]]:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(image_url) as resp:
+            if resp.status != 200:
+                raise Exception(
+                    f"Failed to download image: HTTP {resp.status}")
+            image_data = await resp.read()
+    # 计算图片哈希
+    image_hash = hashlib.md5(image_data).hexdigest()
+    # 检查数据库中是否存在相同哈希的图片
+    existing_image = await get_image_by_hash(image_hash)
+    if existing_image:
+        return False, existing_image
+    # 如果是新图片，保存并处理
+    image_file = f"{image_hash}.jpg"
+    image_path = os.path.join(plugin_config.IMAGE_SAVE_PATH, image_file)
+    async with aiofiles.open(image_path, mode='wb') as f:
+        await f.write(image_data)
+    # 使用 image_processor 处理图片
+    is_new, image_info = await image_processor.process_image(image_path, image_hash)
+    if is_new:
+        await add_image_record(image_info)
+    return is_new, image_info
+
+
 @message_handler.handle()
 async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_State):
     group_id = event.group_id
@@ -68,11 +98,9 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
     # 检查是否为启用的群聊
     if group_id not in plugin_config.ENABLED_GROUPS:
         return
+    # 获取群组配置
     group_config = group_config_manager.get_group_config(group_id)
     character_id = group_config.character_id
-    if not character_id:
-        return
-
     message = event.get_message()
     text_content = ""
     image_descriptions = []
@@ -81,12 +109,17 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
         if segment.type == "text":
             text_content += segment.data['text']
         elif segment.type == "image":
-            is_new, image_info = await image_processor.process_image(segment)
-            if image_info:
-                description = f"[图片描述: {image_info['description']}]"
-                if image_info['is_meme']:
-                    description += f"[表情包情绪: {image_info['emotion_tag']}]"
-                image_descriptions.append(description)
+            image_url = segment.data['url']
+            try:
+                is_new, image_info = await download_and_process_image(image_url)
+                if image_info:
+                    description = f"[图片描述: {image_info['description']}]"
+                    if image_info['is_meme']:
+                        description += f"[表情包情绪: {image_info['emotion_tag']}]"
+                    image_descriptions.append(description)
+            except Exception as e:
+                logger.error(
+                    f"Error downloading or processing image: {str(e)}")
     # 合并文本内容和图片描述
     full_content = text_content + " ".join(image_descriptions)
     # 保存消息到数据库
@@ -95,7 +128,6 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
     if await check_trigger(group_id, full_content, group_config):
         user_impression = await memory_manager.get_impression(group_id, user_id, character_id)
         recent_messages = await memory_manager.get_recent_messages(group_id, limit=plugin_config.CONTEXT_MESSAGE_COUNT)
-
         # 行为决策
         behavior_decision = await decide_behavior(full_content, recent_messages, character_manager.get_character_info(character_id), user_impression)
         if behavior_decision["should_reply"]:

@@ -154,8 +154,8 @@ async def add_image_record(image_info: Dict):
 
 async def get_image_by_hash(image_hash: str) -> Optional[Dict]:
     async with get_session() as session:
-        stmt = select(Image).where(Image.hash == image_hash)
-        result = await session.execute(stmt)
+        query = select(Image).where(Image.hash == image_hash)
+        result = await session.execute(query)
         image = result.scalar_one_or_none()
         if image:
             return {
@@ -163,6 +163,14 @@ async def get_image_by_hash(image_hash: str) -> Optional[Dict]:
                 'file_name': image.file_name,
                 'hash': image.hash,
                 'description': image.description,
-                'is_meme': image.is_meme
+                'is_meme': image.is_meme,
+                'emotion_tag': image.emotion_tag
             }
         return None
+
+
+async def add_image_record(image_info: Dict):
+    async with get_session() as session:
+        new_image = Image(**image_info)
+        session.add(new_image)
+        await session.commit()

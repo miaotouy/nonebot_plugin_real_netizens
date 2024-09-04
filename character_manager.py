@@ -49,7 +49,6 @@ class CharacterManager:
         if character_id not in self.character_cards:
             raise ValueError(f"角色 {character_id} 不存在")
         # 这里需要调用 group_config_manager 来更新群组的角色设置
-        # 假设 group_config_manager 有一个 set_character 方法
         from .group_config_manager import group_config_manager
         await group_config_manager.set_character(group_id, character_id)
         return {"id": character_id, "name": self.character_cards[character_id]["name"]}
@@ -70,7 +69,6 @@ async def handle_switch_character(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
     if len(args) != 2:
         await switch_character.finish("使用方法：切换角色 <角色ID>")
-
     character_id = args[1]
     group_id = event.group_id
     try:
