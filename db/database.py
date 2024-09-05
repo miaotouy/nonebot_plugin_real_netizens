@@ -168,9 +168,3 @@ async def get_image_by_hash(image_hash: str) -> Optional[Dict]:
             }
         return None
 
-
-async def add_image_record(image_info: Dict):
-    async with get_session() as session:
-        new_image = Image(**image_info)
-        session.add(new_image)
-        await session.commit()

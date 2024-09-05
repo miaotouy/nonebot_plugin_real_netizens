@@ -6,7 +6,6 @@ from typing import Any, Dict, List
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
 from nonebot.permission import SUPERUSER
-from nonebot.plugin import require
 from nonebot.rule import to_me
 from nonebot_plugin_txt2img import Txt2Img
 

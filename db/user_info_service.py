@@ -1,8 +1,8 @@
 # db\user_info_service.py
-
 import logging
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
 if TYPE_CHECKING:
     from .models import User, Group, GroupUser
 
@@ -17,14 +17,12 @@ from .database import (create_group, create_group_user, create_user, get_group,
 from .models import Group, GroupUser, User
 
 logger = logging.getLogger(__name__)
-
-
 async def save_user_info(bot: Bot, event: Event):
     """保存用户信息到数据库"""
     user_id = event.get_user_id()
     async with get_session() as session:
         user_info: UserInfo = await get_user_info(bot, event, user_id)
-        user: Optional[User] = await get_user(session, int(user_id)) # type: ignore
+        user: Optional[User] = await get_user(session, int(user_id))  # type: ignore
         if not user:
             user = await create_user(
                 session,
@@ -36,30 +34,38 @@ async def save_user_info(bot: Bot, event: Event):
                 user_info.user_gender
             )
         else:
-            await update_user(
-                session,
-                user,
-                nickname=user_info.user_name,
-                avatar=user_info.user_avatar.get_url() if user_info.user_avatar else None,
-                last_active_time=datetime.now(),
-                displayname=user_info.user_displayname,
-                remark=user_info.user_remark,
-                gender=user_info.user_gender
-            )
+            # 确保 user 不为 None
+            if user:
+                await update_user(
+                    session,
+                    user,
+                    nickname=user_info.user_name,
+                    avatar=user_info.user_avatar.get_url() if user_info.user_avatar else None,
+                    last_active_time=datetime.now(),
+                    displayname=user_info.user_displayname,
+                    remark=user_info.user_remark,
+                    gender=user_info.user_gender
+                )
+            else:
+                logger.warning(f"User {user_id} not found in database.")
         # 处理头像描述
         if user_info.user_avatar:
             await update_user_avatar_description(session, int(user_id), user_info.user_avatar.get_url())
         # 检查 event 是否有 group_id 和 group_name 属性
         if hasattr(event, 'group_id') and hasattr(event, 'group_name'):
             group_id = event.group_id
-            group: Optional[Group] = await get_group(session, int(group_id)) # type: ignore
+            group: Optional[Group] = await get_group(session, int(group_id))  # type: ignore
             if not group:
                 group = await create_group(session, int(group_id), event.group_name)
-            group_user: Optional[GroupUser] = await get_group_user(session, group.group_id, user.user_id) # type: ignore
-            if not group_user:
-                await create_group_user(session, group.group_id, user.user_id, user_info.user_displayname)
+            # 确保 group 和 user 都不是 None
+            if group and user:
+                group_user: Optional[GroupUser] = await get_group_user(session, group.group_id, user.user_id)  # type: ignore
+                if not group_user:
+                    await create_group_user(session, group.group_id, user.user_id, user_info.user_displayname)
+            else:
+                logger.warning(f"Group {group_id} or user {user_id} not found in database.")
         # 如果是消息事件，更新用户的最新消息
-        if hasattr(event, 'get_message'):
+        if hasattr(event, 'get_message') and user:
             message = event.get_message()
             await update_user(session, user, last_message=str(message), last_message_time=datetime.now())
 
