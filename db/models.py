@@ -79,7 +79,7 @@ def init_models(plugin_data):
         created_at = Column(DateTime, default=datetime.utcnow)
         updated_at = Column(DateTime, default=datetime.utcnow,
                             onupdate=datetime.utcnow)
-    
+
     class Image(db.Model):
         __tablename__ = 'images'
         id = Column(Integer, primary_key=True)
@@ -90,7 +90,26 @@ def init_models(plugin_data):
         is_meme = Column(Boolean, default=False)
         created_at = Column(DateTime, default=datetime.utcnow)
 
-    return User, Group, GroupUser, Message, Impression, Image
+    class GroupConfig(db.Model):  # type: ignore
+        __tablename__ = "group_configs"
+        group_id = Column(Integer, primary_key=True, autoincrement=False)
+        character_id = Column(String(255))
+        preset_name = Column(String(255))
+        inactive_threshold = Column(Integer, default=3600)
+        worldbooks = relationship(
+            "GroupWorldbook", back_populates="group_config"
+        )
+
+    class GroupWorldbook(db.Model):  # type: ignore
+        __tablename__ = "group_worldbooks"
+        id = Column(Integer, primary_key=True)
+        group_id = Column(Integer, ForeignKey("group_configs.group_id"))
+        worldbook_name = Column(String(255))
+        enabled = Column(Boolean, default=True)
+        group_config = relationship("GroupConfig", back_populates="worldbooks")
+
+    return User, Group, GroupUser, Message, Impression, Image, GroupConfig, GroupWorldbook
+
 
 plugin_data = get_plugin_data()
 User, Group, GroupUser, Message, Impression, Image = init_models(plugin_data)

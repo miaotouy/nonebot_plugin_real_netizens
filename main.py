@@ -71,8 +71,7 @@ async def download_and_process_image(image_url: str) -> Optional[Dict]:
     async with aiohttp.ClientSession() as session:
         async with session.get(image_url) as resp:
             if resp.status != 200:
-                raise Exception(
-                    f"Failed to download image: HTTP {resp.status}")
+                raise Exception(f"Failed to download image: HTTP {resp.status}")
             image_data = await resp.read()
     # 计算图片哈希
     image_hash = hashlib.md5(image_data).hexdigest()
@@ -82,14 +81,19 @@ async def download_and_process_image(image_url: str) -> Optional[Dict]:
         return existing_image  # 直接返回已存在的图片信息
     # 如果是新图片,保存并处理
     image_file = f"{image_hash}.jpg"
+    # 创建保存图片的目录
+    os.makedirs(plugin_config.IMAGE_SAVE_PATH, exist_ok=True)
     image_path = os.path.join(plugin_config.IMAGE_SAVE_PATH, image_file)
-    async with aiofiles.open(image_path, mode='wb') as f:
+    async with aiofiles.open(image_path, mode="wb") as f:
         await f.write(image_data)
     # 使用 image_processor 处理新图片
-    image_info = await image_processor.process_image(image_path, image_hash)
-    # 保存新图片信息到数据库
-    await add_image_record(image_info)
-    return image_info  # 返回处理后的图片信息
+    success, image_info = await image_processor.process_image(image_path, image_hash)
+    if success:
+        # 保存新图片信息到数据库
+        await add_image_record(image_info)
+        return image_info  # 返回处理后的图片信息
+    else:
+        return None
 
 
 @message_handler.handle()

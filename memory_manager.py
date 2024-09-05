@@ -1,5 +1,4 @@
 # memory_manager.py
-
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -9,7 +8,7 @@ from nonebot.adapters.onebot.v11 import Bot
 from nonebot_plugin_datastore import get_session
 from sqlalchemy import desc, select
 
-from .config import Config
+from .config import get_plugin_config
 from .db.models import Impression, Message
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class MemoryManager:
     def __init__(self):
         self.bot_id = None
-        self.config = Config.parse_obj({})
+        self.config = get_plugin_config()
         self.message_cache = defaultdict(list)
         self.impression_cache = {}
         self.cache_expiry = timedelta(minutes=30)  # 缓存过期时间
@@ -43,7 +42,6 @@ class MemoryManager:
                 messages = result.scalars().all()
                 formatted_messages = [{"role": "user" if msg.user_id != self.bot_id else "assistant",
                                        "content": msg.content} for msg in reversed(messages)]
-
                 # 更新缓存
                 self.message_cache[group_id] = formatted_messages
                 return formatted_messages
@@ -51,23 +49,33 @@ class MemoryManager:
             logger.error(f"Error retrieving recent messages: {str(e)}")
             return []
 
-    async def update_memory(self, group_id: int, user_id: int, content: str):
+    async def update_memory(self, group_id: int, user_id: int, user_message: str, ai_response: str, character_id: str):
         try:
+            # 添加用户消息到数据库
             async with get_session() as session:
                 new_message = Message(
-                    group_id=group_id, user_id=user_id, content=content)
+                    group_id=group_id, user_id=user_id, content=user_message, timestamp=datetime.utcnow())  # 设置时间戳
                 session.add(new_message)
                 await session.commit()
-
+            # 添加AI回复到数据库
+            async with get_session() as session:
+                new_message = Message(
+                    group_id=group_id, user_id=self.bot_id, content=ai_response, timestamp=datetime.utcnow())  # 设置时间戳
+                session.add(new_message)
+                await session.commit()
             # 更新缓存
-            cache_entry = {"role": "user" if user_id !=
-                           self.bot_id else "assistant", "content": content}
-            self.message_cache[group_id].insert(0, cache_entry)
+            user_cache_entry = {"role": "user", "content": user_message}
+            ai_cache_entry = {"role": "assistant", "content": ai_response}
+            self.message_cache[group_id].insert(0, user_cache_entry)
+            self.message_cache[group_id].insert(0, ai_cache_entry)
             self.message_cache[group_id] = self.message_cache[group_id][:self.config.CONTEXT_MESSAGE_COUNT]
+            # 更新印象
+            await self.update_impression(group_id, user_id, character_id, ai_response)
             logger.debug(
                 f"Memory updated for group {group_id}, user {user_id}")
         except Exception as e:
             logger.error(f"Error updating memory: {str(e)}")
+
 
     async def get_impression(self, group_id: int, user_id: int, character_id: str) -> Optional[str]:
         cache_key = (group_id, user_id, character_id)
@@ -83,7 +91,6 @@ class MemoryManager:
                         Impression.is_active == True
                     )
                 ).scalar_one_or_none()
-
                 if impression:
                     self.impression_cache[cache_key] = impression.content
                     return impression.content
@@ -112,22 +119,6 @@ class MemoryManager:
         # 更新缓存
         self.impression_cache[(
             group_id, user_id, character_id)] = new_impression
-
-    async def get_impression(self, group_id: int, user_id: int, character_id: str) -> Optional[str]:
-        try:
-            async with get_session() as session:
-                impression = await session.execute(
-                    select(Impression).where(
-                        Impression.group_id == group_id,
-                        Impression.user_id == user_id,
-                        Impression.character_id == character_id,
-                        Impression.is_active == True
-                    )
-                ).scalar_one_or_none()
-                return impression.content if impression else None
-        except Exception as e:
-            logger.error(f"Error getting impression: {str(e)}")
-            return None
 
     async def deactivate_impression(self, group_id: int, user_id: int, character_id: str):
         try:
@@ -173,13 +164,33 @@ class MemoryManager:
         except Exception as e:
             logger.error(f"Error reactivating impression: {str(e)}")
 
+    async def get_last_message_time(self, group_id: int) -> Optional[float]:
+        if self.bot_id is None:
+            logger.error("Bot ID not set. Please call set_bot_id() first.")
+            return None
+        try:
+            async with get_session() as session:
+                # 查询数据库中该群组的最后一条消息的时间戳
+                result = await session.execute(
+                    select(Message.timestamp).where(Message.group_id ==
+                                                    group_id).order_by(Message.timestamp.desc()).limit(1)
+                )
+                last_message_time = result.scalar_one_or_none()
+                if last_message_time:
+                    return last_message_time.timestamp()  # 返回时间戳
+                else:
+                    return None
+        except Exception as e:
+            logger.error(
+                f"Error getting last message time for group {group_id}: {str(e)}")
+            return None
+
     async def clear_cache(self):
         """清理过期的缓存"""
         current_time = datetime.now()
         for group_id in list(self.message_cache.keys()):
             if current_time - self.message_cache[group_id][-1].get('timestamp', current_time) > self.cache_expiry:
                 del self.message_cache[group_id]
-
         for key in list(self.impression_cache.keys()):
             if current_time - self.impression_cache[key].get('timestamp', current_time) > self.cache_expiry:
                 del self.impression_cache[key]

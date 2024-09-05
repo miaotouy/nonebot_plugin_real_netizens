@@ -10,6 +10,8 @@ from .config import plugin_config
 from .group_config_manager import group_config_manager
 from .memory_manager import memory_manager
 from .message_processor import message_processor
+from .resource_loader import (character_card_loader, preset_loader,
+                              worldbook_loader)
 
 # 列出可用预设
 list_presets = on_command("预设列表", rule=to_me(),
@@ -18,7 +20,7 @@ list_presets = on_command("预设列表", rule=to_me(),
 
 @list_presets.handle()
 async def handle_list_presets(bot: Bot, event: GroupMessageEvent):
-    presets = list(character_manager.get_all_characters())
+    presets = preset_loader.cache.keys()
     message = "可用的预设列表：\n" + "\n".join(presets)
     image = await Txt2Img.render(message)
     await list_presets.finish(MessageSegment.image(image))
@@ -45,7 +47,7 @@ list_worldbooks = on_command(
 
 @list_worldbooks.handle()
 async def handle_list_worldbooks(bot: Bot, event: GroupMessageEvent):
-    worldbooks = list(character_manager.get_all_characters())
+    worldbooks = worldbook_loader.cache.keys()
     message = "可用的世界书列表：\n" + "\n".join(worldbooks)
     image = await Txt2Img.render(message)
     await list_worldbooks.finish(MessageSegment.image(image))
@@ -105,8 +107,8 @@ view_config = on_command("查看配置", rule=to_me(),
 @view_config.handle()
 async def handle_view_config(bot: Bot, event: GroupMessageEvent):
     group_id = event.group_id
-    config = await group_config_manager.get_group_config(group_id)
-    message = f"当前群配置：\n预设：{config.preset_path}\n角色卡：{config.character_id}\n世界书：{', '.join(config.world_info_paths)}"
+    config = group_config_manager.get_group_config(group_id)
+    message = f"当前群配置：\n预设：{config.preset_name}\n角色卡：{config.character_id}\n世界书：{', '.join(config.worldbook_names)}"
     image = await Txt2Img.render(message)
     await view_config.finish(MessageSegment.image(image))
 # 清除印象
@@ -118,7 +120,8 @@ clear_impression = on_command(
 async def handle_clear_impression(bot: Bot, event: GroupMessageEvent):
     group_id = event.group_id
     user_id = event.get_user_id()
-    character_id = group_config_manager.get_group_config(group_id).character_id
+    character_id = group_config_manager.get_group_config(
+        group_id).character_id
     await memory_manager.deactivate_impression(group_id, int(user_id), character_id)
     await clear_impression.finish("已清除该用户的印象")
 # 恢复印象
@@ -130,7 +133,8 @@ restore_impression = on_command(
 async def handle_restore_impression(bot: Bot, event: GroupMessageEvent):
     group_id = event.group_id
     user_id = event.get_user_id()
-    character_id = group_config_manager.get_group_config(group_id).character_id
+    character_id = group_config_manager.get_group_config(
+        group_id).character_id
     await memory_manager.reactivate_impression(group_id, int(user_id), character_id)
     await restore_impression.finish("已恢复该用户的印象")
 # 查看印象
@@ -142,7 +146,8 @@ view_impression = on_command(
 async def handle_view_impression(bot: Bot, event: GroupMessageEvent):
     group_id = event.group_id
     user_id = event.get_user_id()
-    character_id = group_config_manager.get_group_config(group_id).character_id
+    character_id = group_config_manager.get_group_config(
+        group_id).character_id
     impression = await memory_manager.get_impression(group_id, int(user_id), character_id)
     if impression:
         message = f"用户 {user_id} 的印象：\n{impression}"
@@ -162,7 +167,8 @@ async def handle_update_impression(bot: Bot, event: GroupMessageEvent):
         await update_impression.finish("使用方法：更新印象 <印象内容>")
     group_id = event.group_id
     user_id = event.get_user_id()
-    character_id = group_config_manager.get_group_config(group_id).character_id
+    character_id = group_config_manager.get_group_config(
+        group_id).character_id
     new_impression = args[1]
     await memory_manager.update_impression(group_id, int(user_id), character_id, new_impression)
     await update_impression.finish("已更新用户印象")

@@ -86,17 +86,17 @@ class Config(BaseSettings):
     DEFAULT_CHARACTER_ID: str = Field(
         default="nolll", description="默认角色ID"
     )
-    # 其他配置项
-    DEFAULT_CHARACTER_ID: str = Field(
-        default="default",
-        description="默认角色ID"
+    # 定时任务开关
+    ENABLE_SCHEDULER: bool = Field(
+        default=True, description="是否启用定时任务"
     )
+    # 其他配置项
     INACTIVE_THRESHOLD: int = Field(
         default=3600,
         description="群聊不活跃阈值（秒）"
     )
     MORNING_GREETING_TIME: str = Field(
-        default="08:00",
+        default="08:30",
         description="早安问候时间"
     )
     DATABASE_URL: str = Field(
@@ -111,7 +111,6 @@ class Config(BaseSettings):
         default=3000,
         description="聊天历史记录最大保存条数"
     )
-    # 新增配置项
     MAX_RETRIES: int = Field(
         default=3, env="MAX_RETRIES",
         description="API调用最大重试次数"
@@ -171,6 +170,8 @@ class Config(BaseSettings):
             print(f"写入配置文件时出错：{e}")
         return config
 
+def get_plugin_config() -> Config:
+    return plugin_config
 
 # 全局配置对象
 plugin_config = Config.from_yaml()
