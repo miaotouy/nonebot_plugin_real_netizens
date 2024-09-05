@@ -2,7 +2,9 @@
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from .models import User, Group, GroupUser
 
 import aiohttp
 from nonebot.adapters import Bot, Event
@@ -15,12 +17,14 @@ from .database import (create_group, create_group_user, create_user, get_group,
 from .models import Group, GroupUser, User
 
 logger = logging.getLogger(__name__)
+
+
 async def save_user_info(bot: Bot, event: Event):
     """保存用户信息到数据库"""
     user_id = event.get_user_id()
     async with get_session() as session:
         user_info: UserInfo = await get_user_info(bot, event, user_id)
-        user: Optional[User] = await get_user(session, int(user_id))
+        user: Optional[User] = await get_user(session, int(user_id)) # type: ignore
         if not user:
             user = await create_user(
                 session,
@@ -48,16 +52,18 @@ async def save_user_info(bot: Bot, event: Event):
         # 检查 event 是否有 group_id 和 group_name 属性
         if hasattr(event, 'group_id') and hasattr(event, 'group_name'):
             group_id = event.group_id
-            group: Optional[Group] = await get_group(session, int(group_id))
+            group: Optional[Group] = await get_group(session, int(group_id)) # type: ignore
             if not group:
                 group = await create_group(session, int(group_id), event.group_name)
-            group_user: Optional[GroupUser] = await get_group_user(session, group.group_id, user.user_id)
+            group_user: Optional[GroupUser] = await get_group_user(session, group.group_id, user.user_id) # type: ignore
             if not group_user:
                 await create_group_user(session, group.group_id, user.user_id, user_info.user_displayname)
         # 如果是消息事件，更新用户的最新消息
         if hasattr(event, 'get_message'):
             message = event.get_message()
             await update_user(session, user, last_message=str(message), last_message_time=datetime.now())
+
+
 async def update_user_avatar_description(session, user_id: int, avatar_url: str):
     """更新用户头像描述"""
     try:
@@ -69,7 +75,10 @@ async def update_user_avatar_description(session, user_id: int, avatar_url: str)
                 user.avatar_description = description['description']
                 await session.commit()
     except Exception as e:
-        logger.error(f"Error updating avatar description for user {user_id}: {str(e)}")
+        logger.error(
+            f"Error updating avatar description for user {user_id}: {str(e)}")
+
+
 async def download_image(url: str) -> Optional[bytes]:
     """下载图片"""
     try:

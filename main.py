@@ -5,20 +5,20 @@ import logging
 import os
 import random
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import aiofiles
 import aiohttp
 from nonebot import get_driver, on_command, on_message, on_notice, require
 from nonebot.adapters.onebot.v11 import (Bot, GroupIncreaseNoticeEvent,
-                                         GroupMessageEvent, MessageSegment)
+                                         GroupMessageEvent)
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 from nonebot_plugin_datastore import get_session
 
 from .character_manager import CharacterManager
-from .config import Config, plugin_config
+from .config import plugin_config
 from .db.database import (add_image_record, add_message, delete_old_messages,
                           get_image_by_hash)
 from .group_config_manager import GroupConfig, group_config_manager

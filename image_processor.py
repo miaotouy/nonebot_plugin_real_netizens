@@ -6,7 +6,7 @@ import os
 from io import BytesIO
 from typing import Dict, Optional, Tuple
 
-import imagehash
+import imagehash # type: ignore
 from nonebot import get_driver
 from nonebot.adapters.onebot.v11 import MessageSegment
 from PIL import Image
