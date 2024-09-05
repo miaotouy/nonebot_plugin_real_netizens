@@ -76,6 +76,16 @@ class Config(BaseSettings):
         default="data/images",
         description="图片保存路径"
     )
+    # 默认资源配置
+    DEFAULT_WORLDBOOK: str = Field(
+        default="世界书条目示例", description="默认世界书名称"
+    )
+    DEFAULT_PRESET: str = Field(
+        default="预设示例", description="默认预设名称"
+    )
+    DEFAULT_CHARACTER_ID: str = Field(
+        default="nolll", description="默认角色ID"
+    )
     # 其他配置项
     DEFAULT_CHARACTER_ID: str = Field(
         default="default",

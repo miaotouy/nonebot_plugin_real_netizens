@@ -27,6 +27,7 @@ from .llm_generator import llm_generator
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 from .message_processor import message_processor
+from .schedulers import scheduler
 
 logger = logging.getLogger(__name__)
 # 初始化组件
@@ -101,6 +102,9 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
     # 获取群组配置
     group_config = group_config_manager.get_group_config(group_id)
     character_id = group_config.character_id
+    # 如果没有设置角色，则使用默认角色
+    if not character_id:
+        character_id = plugin_config.DEFAULT_CHARACTER_ID
     message = event.get_message()
     text_content = ""
     image_descriptions = []
@@ -138,9 +142,12 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 "reply_type": behavior_decision["reply_type"],
                 "priority": behavior_decision["priority"]
             }
+            # 获取预设名称和世界书名称列表
+            preset_name = group_config.preset_name
+            worldbook_names = group_config.worldbook_names
             message_builder = MessageBuilder(
-                preset_file=group_config.preset_path,
-                world_info_files=group_config.world_info_paths,
+                preset_name=preset_name,
+                worldbook_names=worldbook_names,
                 character_id=character_id
             )
             response = await message_processor(event, recent_messages, message_builder, context)
@@ -172,21 +179,23 @@ async def handle_group_increase(bot: Bot, event: GroupIncreaseNoticeEvent):
     group_id = event.group_id
     group_config = group_config_manager.get_group_config(group_id)
     character_id = group_config.character_id
+    # 如果没有设置角色，则使用默认角色
     if not character_id:
-        return
+        character_id = plugin_config.DEFAULT_CHARACTER_ID
     new_member = event.get_user_id()
     context = {"user": new_member, "char": character_manager.get_character_info(
         character_id, "name")}
+    # 获取预设名称和世界书名称列表
+    preset_name = group_config.preset_name
+    worldbook_names = group_config.worldbook_names
     message_builder = MessageBuilder(
-        preset_file=group_config.preset_path,
-        world_info_files=group_config.world_info_paths,
+        preset_name=preset_name,
+        worldbook_names=worldbook_names,
         character_id=character_id
     )
     welcome_msg = await message_processor(event, [], message_builder, context)
     if welcome_msg:
         await bot.send(event=event, message=welcome_msg)
-# 定时任务
-scheduler = require("nonebot_plugin_apscheduler").scheduler
 
 
 @scheduler.scheduled_job("cron", hour=int(plugin_config.MORNING_GREETING_TIME.split(":")[0]), minute=int(plugin_config.MORNING_GREETING_TIME.split(":")[1]))
@@ -195,13 +204,17 @@ async def morning_greeting():
     for group_id in group_config_manager.get_all_groups():
         group_config = group_config_manager.get_group_config(group_id)
         character_id = group_config.character_id
+        # 如果没有设置角色，则使用默认角色
         if not character_id:
-            continue
+            character_id = plugin_config.DEFAULT_CHARACTER_ID
         context = {"user": "群友", "char": character_manager.get_character_info(
             character_id, "name")}
+        # 获取预设名称和世界书名称列表
+        preset_name = group_config.preset_name
+        worldbook_names = group_config.worldbook_names
         message_builder = MessageBuilder(
-            preset_file=group_config.preset_path,
-            world_info_files=group_config.world_info_paths,
+            preset_name=preset_name,
+            worldbook_names=worldbook_names,
             character_id=character_id
         )
         greeting = await message_processor(None, [], message_builder, context)
@@ -216,15 +229,19 @@ async def check_inactive_chats():
     for group_id in group_config_manager.get_all_groups():
         group_config = group_config_manager.get_group_config(group_id)
         character_id = group_config.character_id
+        # 如果没有设置角色，则使用默认角色
         if not character_id:
-            continue
+            character_id = plugin_config.DEFAULT_CHARACTER_ID
         last_message_time = await memory_manager.get_last_message_time(group_id)
         if current_time - last_message_time > group_config.inactive_threshold:
             context = {"user": "群友", "char": character_manager.get_character_info(
                 character_id, "name")}
+            # 获取预设名称和世界书名称列表
+            preset_name = group_config.preset_name
+            worldbook_names = group_config.worldbook_names
             message_builder = MessageBuilder(
-                preset_file=group_config.preset_path,
-                world_info_files=group_config.world_info_paths,
+                preset_name=preset_name,
+                worldbook_names=worldbook_names,
                 character_id=character_id
             )
             revival_msg = await message_processor(None, [], message_builder, context)
