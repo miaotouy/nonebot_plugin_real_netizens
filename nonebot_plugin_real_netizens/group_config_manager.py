@@ -1,6 +1,6 @@
 # group_config_manager.py
 import os
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from nonebot_plugin_datastore import get_session
 from pydantic import BaseModel
@@ -26,38 +26,42 @@ class GroupConfigManager:
         self.configs: Dict[int, GroupConfig] = {}
         # 获取 res 目录的绝对路径
         self.res_path = os.path.join(os.path.dirname(__file__), "res")
+        self.observers: List[Callable[[int], None]] = []
+
+    def register_observer(self, observer: Callable[[int], None]):
+        self.observers.append(observer)
+
+    def notify_observers(self, group_id: int):
+        for observer in self.observers:
+            observer(group_id)
+
     async def load_configs(self):
         try:
             async with get_session() as session:
-                # 获取所有群组配置
-                group_configs = (
-                    (await session.scalars(select(DBGroupConfig))).all()
-                )
+                group_configs = (await session.scalars(select(DBGroupConfig))).all()
                 for db_config in group_configs:
-                    # 获取该群组启用的世界书
-                    worldbooks = (
-                        await session.scalars(
-                            select(GroupWorldbook).where(
-                                GroupWorldbook.group_id == db_config.group_id,
-                                GroupWorldbook.enabled == True,
-                            )
+                    worldbooks = (await session.scalars(
+                        select(GroupWorldbook).where(
+                            GroupWorldbook.group_id == db_config.group_id,
+                            GroupWorldbook.enabled == True,
                         )
-                    ).all()
+                    )).all()
                     self.configs[db_config.group_id] = GroupConfig(
                         group_id=db_config.group_id,
                         character_id=db_config.character_id,
                         preset_name=db_config.preset_name,
                         worldbook_names=[
-                            worldbook.worldbook_name for worldbook in worldbooks
-                        ],
+                            worldbook.worldbook_name for worldbook in worldbooks],
                         inactive_threshold=db_config.inactive_threshold,
                     )
         except Exception as e:
             logger.error(f"Failed to load group configs: {e}")
+
     def get_group_config(self, group_id: int) -> GroupConfig:
         if group_id not in self.configs:
             self.configs[group_id] = GroupConfig(group_id=group_id)
         return self.configs[group_id]
+
     async def update_group_config(self, config: GroupConfig):
         try:
             async with get_session() as session:
@@ -68,24 +72,18 @@ class GroupConfigManager:
                 db_config.preset_name = config.preset_name
                 db_config.inactive_threshold = config.inactive_threshold
                 session.add(db_config)
-                # 删除旧的世界书配置
-                await session.execute(
-                    delete(GroupWorldbook).where(
-                        GroupWorldbook.group_id == config.group_id
-                    )
-                )
-                # 添加新的世界书配置
+
+                await session.execute(delete(GroupWorldbook).where(GroupWorldbook.group_id == config.group_id))
                 for worldbook_name in config.worldbook_names:
-                    session.add(
-                        GroupWorldbook(
-                            group_id=config.group_id,
-                            worldbook_name=worldbook_name,
-                            enabled=True,
-                        )
-                    )
+                    session.add(GroupWorldbook(
+                        group_id=config.group_id,
+                        worldbook_name=worldbook_name,
+                        enabled=True,
+                    ))
                 await session.commit()
-            # 更新内存中的配置
+
             self.configs[config.group_id] = config
+            self.notify_observers(config.group_id)  # 通知观察者
         except Exception as e:
             logger.error(f"Failed to update group config: {e}")
 

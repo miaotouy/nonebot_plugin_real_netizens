@@ -17,6 +17,7 @@ from nonebot.typing import T_State
 from nonebot_plugin_datastore import get_session
 
 from .admin_commands import *
+from .admin_commands import handle_admin_command
 from .behavior_decider import decide_behavior
 from .character_manager import CharacterManager
 from .config import plugin_config
@@ -73,19 +74,29 @@ async def download_and_process_image(image_url: str) -> Optional[Dict]:
 async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_State):
     group_id = event.group_id
     user_id = event.user_id
+
     # 检查是否为启用的群聊
     if group_id not in plugin_config.ENABLED_GROUPS:
         return
+
     # 获取群组配置
     group_config = group_config_manager.get_group_config(group_id)
-    character_id = group_config.character_id
-    # 如果没有设置角色，则使用默认角色
-    if not character_id:
-        character_id = plugin_config.DEFAULT_CHARACTER_ID
-    message = event.get_message()
+    character_id = group_config.character_id or plugin_config.DEFAULT_CHARACTER_ID
+
+    # 处理消息中的文本和图片
+    full_content, image_descriptions = await process_message_content(event.get_message())
+
+    # 保存消息到数据库
+    await add_message(group_id, user_id, full_content)
+
+    # 触发机制检查
+    if await check_trigger(group_id, full_content, group_config):
+        await process_ai_response(bot, event, group_id, user_id, character_id, full_content, group_config)
+
+
+async def process_message_content(message):
     text_content = ""
     image_descriptions = []
-    # 处理消息中的文本和图片
     for segment in message:
         if segment.type == "text":
             text_content += segment.data['text']
@@ -99,58 +110,102 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
                         description += f"[表情包情绪: {image_info['emotion_tag']}]"
                     image_descriptions.append(description)
             except Exception as e:
-                logger.error(
-                    f"Error downloading or processing image: {str(e)}")
-    # 合并文本内容和图片描述
-    full_content = text_content + " ".join(image_descriptions)
-    # 保存消息到数据库
-    await add_message(group_id, user_id, full_content)
-    # 触发机制检查
-    if await check_trigger(group_id, full_content, group_config):
-        user_impression = await memory_manager.get_impression(group_id, user_id, character_id)
-        recent_messages = await memory_manager.get_recent_messages(group_id, limit=plugin_config.CONTEXT_MESSAGE_COUNT)
-        # 行为决策
-        preset_name = group_config.preset_name
-        worldbook_names = group_config.worldbook_names
-        message_builder = MessageBuilder(
-            preset_name=preset_name,
-            worldbook_names=worldbook_names,
-            character_id=character_id
-        )
-        behavior_decision = await decide_behavior(full_content, recent_messages, message_builder, user_id, character_id)
-        if behavior_decision["should_reply"]:
-            context = {
-                "user": event.sender.nickname,
-                "char": character_manager.get_character_info(character_id, "name"),
-                "user_impression": user_impression,
-                "reply_type": behavior_decision["reply_type"],
-                "priority": behavior_decision["priority"]
-            }
-            # 获取预设名称和世界书名称列表
-            response = await message_processor(event, recent_messages, message_builder, context)
-            try:
-                parsed_response = json.loads(response)
-                # 发送实际回复
-                await bot.send(event=event, message=parsed_response["response"])
-                # 更新印象
-                new_impression = parsed_response["impression_update"]
-                await memory_manager.update_impression(group_id, user_id, character_id, new_impression)
-                # 可以选择记录内部想法和行为决策理由
-                logger.debug(
-                    f"Internal thoughts: {parsed_response['internal_thoughts']}")
-                logger.debug(
-                    f"Behavior decision reason: {behavior_decision['reason']}")
-            except json.JSONDecodeError:
-                logger.error(
-                    f"Failed to parse LLM response as JSON: {response}")
+                logger.error(f"Error processing image: {str(e)}")
+
+    return text_content + " ".join(image_descriptions), image_descriptions
+
+
+async def process_ai_response(bot, event, group_id, user_id, full_content, group_config):
+    # 获取用户印象
+    user_impression = await memory_manager.get_impression(group_id, user_id)
+    # 获取最近的消息
+    recent_messages = await memory_manager.get_recent_messages(group_id, limit=plugin_config.CONTEXT_MESSAGE_COUNT)
+    # 从角色管理器获取最新的角色信息
+    character_info = character_manager.get_character_info(group_id)
+    # 构建消息
+    message_builder = MessageBuilder(
+        preset_name=group_config.preset_name,
+        worldbook_names=group_config.worldbook_names,
+        character_id=character_info['character_id'] or plugin_config.DEFAULT_CHARACTER_ID
+    )
+    # 决策行为
+    behavior_decision = await decide_behavior(full_content, recent_messages, message_builder, user_id, group_id)
+    if behavior_decision["should_reply"]:
+        context = {
+            "user": event.sender.nickname,
+            "char": character_info.get("name"),
+            "user_impression": user_impression,
+            "reply_type": behavior_decision["reply_type"],
+            "priority": behavior_decision["priority"]
+        }
+        # 处理消息
+        response = await message_processor(event, recent_messages, message_builder, context)
+        try:
+            parsed_response = json.loads(response)
+            await bot.send(event=event, message=parsed_response["response"])
+            new_impression = parsed_response["impression_update"]
+            await memory_manager.update_impression(group_id, user_id, parsed_response['character_id'], new_impression)
+            logger.debug(
+                f"Internal thoughts: {parsed_response['internal_thoughts']}")
+            logger.debug(
+                f"Behavior decision reason: {behavior_decision['reason']}")
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse LLM response as JSON: {response}")
     # 更新记忆
-    await memory_manager.update_memory(group_id, user_id, full_content, response, character_id)
+    await memory_manager.update_memory(group_id, user_id, parsed_response['character_id'], full_content, response)
+
+
+async def check_trigger(group_id, full_content, group_config):
+    # 实现触发机制检查的逻辑
+    return True  # 临时返回值，需要根据实际逻辑修改
+
+
+# 管理命令处理器
+admin_command = on_command("admin", permission=SUPERUSER, priority=1)
+
+
+# 管理命令处理器
+admin_commands = {
+    "设置角色卡": on_command("设置角色卡", permission=SUPERUSER, priority=1),
+    "切换预设": on_command("切换预设", permission=SUPERUSER, priority=1),
+    "启用世界书": on_command("启用世界书", permission=SUPERUSER, priority=1),
+    "禁用世界书": on_command("禁用世界书", permission=SUPERUSER, priority=1),
+    "查看配置": on_command("查看配置", permission=SUPERUSER, priority=1),
+    "清除印象": on_command("清除印象", permission=SUPERUSER, priority=1),
+    "恢复印象": on_command("恢复印象", permission=SUPERUSER, priority=1),
+    "查看印象": on_command("查看印象", permission=SUPERUSER, priority=1),
+}
+
+
+# 通用的管理命令处理函数
+async def admin_command_handler(bot: Bot, event: GroupMessageEvent):
+    if event.group_id not in plugin_config.ENABLED_GROUPS:
+        await bot.send(event, "此群未启用管理命令功能。")
+        return
+    args = str(event.get_message()).strip().split()
+    command = event.raw_command.strip()  # 获取原始命令名
+    if len(args) < 2:
+        await bot.send(event, f"缺少目标群号。正确格式：{command} <目标群号> [其他参数]")
+        return
+    try:
+        target_group = int(args[1])
+    except ValueError:
+        await bot.send(event, f"无效的群号 '{args[1]}'。请提供一个有效的数字群号。")
+        return
+    # 针对不同命令检查参数数量
+    if command in ["设置角色卡", "切换预设", "启用世界书", "禁用世界书"]:
+        if len(args) < 3:
+            await bot.send(event, f"命令 '{command}' 缺少必要参数。正确格式：{command} <目标群号> <参数名>")
+            return
+    # 调用handle_admin_command处理命令
+    await handle_admin_command(bot, event, [command] + args)
+# 为每个管理命令注册处理函数
+for cmd, matcher in admin_commands.items():
+    matcher.handle()(admin_command_handler)
 
 
 # 入群欢迎消息
 welcome_handler = on_notice(priority=5)
-
-
 @welcome_handler.handle()
 async def handle_group_increase(bot: Bot, event: GroupIncreaseNoticeEvent):
     group_id = event.group_id

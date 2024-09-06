@@ -9,169 +9,169 @@ from nonebot_plugin_txt2img import Txt2Img
 
 from .character_manager import character_manager
 from .group_config_manager import group_config_manager
+from .logger import logger
 from .memory_manager import memory_manager
 
-# 列出可用预设
-list_presets = on_command("预设列表", rule=to_me(),
-                          permission=SUPERUSER, priority=5)
+# 定义所有管理命令
+admin_commands = {
+    "预设列表": on_command("预设列表", permission=SUPERUSER, priority=5),
+    "切换预设": on_command("切换预设", permission=SUPERUSER, priority=5),
+    "世界书列表": on_command("世界书列表", permission=SUPERUSER, priority=5),
+    "启用世界书": on_command("启用世界书", permission=SUPERUSER, priority=5),
+    "禁用世界书": on_command("禁用世界书", permission=SUPERUSER, priority=5),
+    "设置角色卡": on_command("设置角色卡", permission=SUPERUSER, priority=5),
+    "查看配置": on_command("查看配置", permission=SUPERUSER, priority=5),
+    "清除印象": on_command("清除印象", permission=SUPERUSER, priority=5),
+    "恢复印象": on_command("恢复印象", permission=SUPERUSER, priority=5),
+    "查看印象": on_command("查看印象", permission=SUPERUSER, priority=5),
+    "更新印象": on_command("更新印象", permission=SUPERUSER, priority=5),
+}
+# 通用的参数检查函数
 
 
-@list_presets.handle()
+def check_args(args: List[str], expected_length: int, usage: str) -> bool:
+    if len(args) != expected_length:
+        raise ValueError(f"参数数量不正确。使用方法：{usage}")
+    return True
+# 处理函数
+
+
 async def handle_list_presets(bot: Bot, event: GroupMessageEvent):
     presets = character_manager.get_preset_list()
     message = "可用的预设列表：\n" + "\n".join(presets)
-    await list_presets.finish(message)
-# 切换预设
-switch_preset = on_command(
-    "切换预设", rule=to_me(), permission=SUPERUSER, priority=5)
+    return message
 
 
-@switch_preset.handle()
 async def handle_switch_preset(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 2:
-        await switch_preset.finish("使用方法：切换预设 <预设名称>")
-    preset_name = args[1]
-    group_id = event.group_id
+    check_args(args, 3, "切换预设 <目标群号> <预设名称>")
+    group_id, preset_name = int(args[1]), args[2]
     if await group_config_manager.set_preset(group_id, preset_name):
-        await switch_preset.finish(f"成功切换到预设：{preset_name}")
+        return f"成功为群 {group_id} 切换到预设：{preset_name}"
     else:
-        await switch_preset.finish(f"切换预设失败，请检查预设名称是否正确")
-# 列出世界书
-list_worldbooks = on_command(
-    "世界书列表", rule=to_me(), permission=SUPERUSER, priority=5)
+        return f"切换预设失败，请检查群号和预设名称是否正确"
 
 
-@list_worldbooks.handle()
 async def handle_list_worldbooks(bot: Bot, event: GroupMessageEvent):
     worldbooks = character_manager.get_worldbook_list()
     message = "可用的世界书列表：\n" + "\n".join(worldbooks)
-    await list_worldbooks.finish(message)
-# 启用世界书
-enable_worldbook = on_command(
-    "启用世界书", rule=to_me(), permission=SUPERUSER, priority=5)
+    return message
 
 
-@enable_worldbook.handle()
 async def handle_enable_worldbook(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 2:
-        await enable_worldbook.finish("使用方法：启用世界书 <世界书名称>")
-    worldbook_name = args[1]
-    group_id = event.group_id
+    check_args(args, 3, "启用世界书 <目标群号> <世界书名称>")
+    group_id, worldbook_name = int(args[1]), args[2]
     if await group_config_manager.enable_worldbook(group_id, worldbook_name):
-        await enable_worldbook.finish(f"成功启用世界书：{worldbook_name}")
+        return f"成功为群 {group_id} 启用世界书：{worldbook_name}"
     else:
-        await enable_worldbook.finish(f"启用世界书失败，请检查世界书名称是否正确")
-# 禁用世界书
-disable_worldbook = on_command(
-    "禁用世界书", rule=to_me(), permission=SUPERUSER, priority=5)
+        return f"启用世界书失败，请检查群号和世界书名称是否正确"
 
 
-@disable_worldbook.handle()
 async def handle_disable_worldbook(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 2:
-        await disable_worldbook.finish("使用方法：禁用世界书 <世界书名称>")
-    worldbook_name = args[1]
-    group_id = event.group_id
+    check_args(args, 3, "禁用世界书 <目标群号> <世界书名称>")
+    group_id, worldbook_name = int(args[1]), args[2]
     if await group_config_manager.disable_worldbook(group_id, worldbook_name):
-        await disable_worldbook.finish(f"成功禁用世界书：{worldbook_name}")
+        return f"成功为群 {group_id} 禁用世界书：{worldbook_name}"
     else:
-        await disable_worldbook.finish(f"禁用世界书失败，请检查世界书名称是否正确")
-# 设置角色卡
-set_character = on_command("设置角色卡", rule=to_me(),
-                           permission=SUPERUSER, priority=5)
+        return f"禁用世界书失败，请检查群号和世界书名称是否正确"
 
 
-@set_character.handle()
 async def handle_set_character(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 2:
-        await set_character.finish("使用方法：设置角色卡 <角色名称>")
-    character_name = args[1]
-    group_id = event.group_id
+    check_args(args, 3, "设置角色卡 <目标群号> <角色名称>")
+    group_id, character_name = int(args[1]), args[2]
     if await group_config_manager.set_character(group_id, character_name):
-        await set_character.finish(f"成功设置角色卡：{character_name}")
+        return f"成功为群 {group_id} 设置角色卡：{character_name}"
     else:
-        await set_character.finish(f"设置角色卡失败，请检查角色名称是否正确")
-# 查看当前配置
-view_config = on_command("查看配置", rule=to_me(),
-                         permission=SUPERUSER, priority=5)
+        return f"设置角色卡失败，请检查群号和角色名称是否正确"
 
 
-@view_config.handle()
 async def handle_view_config(bot: Bot, event: GroupMessageEvent):
-    group_id = event.group_id
+    args = str(event.get_message()).strip().split()
+    check_args(args, 2, "查看配置 <目标群号>")
+    group_id = int(args[1])
     config = group_config_manager.get_group_config(group_id)
-    message = f"当前群配置：\n预设：{config.preset_name}\n角色卡：{config.character_id}\n世界书：{', '.join(config.worldbook_names)}"
+    message = f"群 {group_id} 配置：\n预设：{config.preset_name}\n角色卡：{config.character_id}\n世界书：{', '.join(config.worldbook_names)}"
     image = await Txt2Img.render(message)
-    await view_config.finish(MessageSegment.image(image))
-# --- 印象管理命令 ---
-# 清除印象
-clear_impression = on_command(
-    "清除印象", rule=to_me(), permission=SUPERUSER, priority=5)
+    return MessageSegment.image(image)
 
 
-@clear_impression.handle()
 async def handle_clear_impression(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 3:
-        await clear_impression.finish("使用方法：清除印象 <用户QQ> <角色ID>")
-    user_id = args[1]
-    character_id = args[2]
-    group_id = event.group_id
-    await memory_manager.deactivate_impression(group_id, int(user_id), character_id)
-    await clear_impression.finish(f"已清除用户 {user_id} 对角色 {character_id} 的印象")
-# 恢复印象
-restore_impression = on_command(
-    "恢复印象", rule=to_me(), permission=SUPERUSER, priority=5)
+    check_args(args, 4, "清除印象 <目标群号> <用户QQ> <角色ID>")
+    group_id, user_id, character_id = int(args[1]), int(args[2]), args[3]
+    await memory_manager.deactivate_impression(group_id, user_id, character_id)
+    return f"已清除群 {group_id} 中用户 {user_id} 对角色 {character_id} 的印象"
 
 
-@restore_impression.handle()
 async def handle_restore_impression(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 3:
-        await restore_impression.finish("使用方法：恢复印象 <用户QQ> <角色ID>")
-    user_id = args[1]
-    character_id = args[2]
-    group_id = event.group_id
-    await memory_manager.reactivate_impression(group_id, int(user_id), character_id)
-    await restore_impression.finish(f"已恢复用户 {user_id} 对角色 {character_id} 的印象")
-# 查看印象
-view_impression = on_command(
-    "查看印象", rule=to_me(), permission=SUPERUSER, priority=5)
+    check_args(args, 4, "恢复印象 <目标群号> <用户QQ> <角色ID>")
+    group_id, user_id, character_id = int(args[1]), int(args[2]), args[3]
+    await memory_manager.reactivate_impression(group_id, user_id, character_id)
+    return f"已恢复群 {group_id} 中用户 {user_id} 对角色 {character_id} 的印象"
 
 
-@view_impression.handle()
 async def handle_view_impression(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
-    if len(args) != 3:
-        await view_impression.finish("使用方法：查看角色印象 <用户QQ> <角色ID>")
-    user_id = args[1]
-    character_id = args[2]
-    group_id = event.group_id
-    impression = await memory_manager.get_impression(group_id, int(user_id), character_id)
+    check_args(args, 4, "查看印象 <目标群号> <用户QQ> <角色ID>")
+    group_id, user_id, character_id = int(args[1]), int(args[2]), args[3]
+    impression = await memory_manager.get_impression(group_id, user_id, character_id)
     if impression:
-        message = f"角色 {character_id} 对用户 {user_id} 的印象：\n{impression}"  # 修改提示信息
+        message = f"群 {group_id} 中角色 {character_id} 对用户 {user_id} 的印象：\n{impression}"
     else:
-        message = f"未找到角色 {character_id} 对用户 {user_id} 的印象"  # 修改提示信息
+        message = f"未找到群 {group_id} 中角色 {character_id} 对用户 {user_id} 的印象"
     image = await Txt2Img.render(message)
-    await view_impression.finish(MessageSegment.image(image))
-
-# 手动更新印象
-update_impression = on_command(
-    "更新印象", rule=to_me(), permission=SUPERUSER, priority=5)
+    return MessageSegment.image(image)
 
 
-@update_impression.handle()
 async def handle_update_impression(bot: Bot, event: GroupMessageEvent):
-    args = str(event.get_message()).strip().split(maxsplit=3)
-    if len(args) != 4:
-        await update_impression.finish("使用方法：更新印象 <用户QQ> <角色ID> <印象内容>")
-    user_id = args[1]
-    character_id = args[2]
-    new_impression = args[3]
-    group_id = event.group_id
-    await memory_manager.update_impression(group_id, int(user_id), character_id, new_impression)
-    await update_impression.finish(f"已更新用户 {user_id} 对角色 {character_id} 的印象")
+    args = str(event.get_message()).strip().split(maxsplit=4)
+    check_args(args, 5, "更新印象 <目标群号> <用户QQ> <角色ID> <印象内容>")
+    group_id, user_id, character_id, new_impression = int(
+        args[1]), int(args[2]), args[3], args[4]
+    await memory_manager.update_impression(group_id, user_id, character_id, new_impression)
+    return f"已更新群 {group_id} 中用户 {user_id} 对角色 {character_id} 的印象"
+# 主要的命令处理函数
+
+
+async def handle_admin_command(bot: Bot, event: GroupMessageEvent, args: list):
+    command = args[0]
+    try:
+        if command == "预设列表":
+            return await handle_list_presets(bot, event)
+        elif command == "切换预设":
+            return await handle_switch_preset(bot, event)
+        elif command == "世界书列表":
+            return await handle_list_worldbooks(bot, event)
+        elif command == "启用世界书":
+            return await handle_enable_worldbook(bot, event)
+        elif command == "禁用世界书":
+            return await handle_disable_worldbook(bot, event)
+        elif command == "设置角色卡":
+            return await handle_set_character(bot, event)
+        elif command == "查看配置":
+            return await handle_view_config(bot, event)
+        elif command == "清除印象":
+            return await handle_clear_impression(bot, event)
+        elif command == "恢复印象":
+            return await handle_restore_impression(bot, event)
+        elif command == "查看印象":
+            return await handle_view_impression(bot, event)
+        elif command == "更新印象":
+            return await handle_update_impression(bot, event)
+        else:
+            return f"未知的命令：{command}"
+    except ValueError as e:
+        return str(e)
+    except Exception as e:
+        logger.error(f"处理命令 {command} 时发生错误: {str(e)}")
+        return f"处理命令时发生错误，请检查日志"
+# 为每个命令注册处理函数
+for cmd, matcher in admin_commands.items():
+    @matcher.handle()
+    async def _(bot: Bot, event: GroupMessageEvent, matcher=matcher):
+        result = await handle_admin_command(bot, event, str(event.get_message()).strip().split())
+        await matcher.finish(result)

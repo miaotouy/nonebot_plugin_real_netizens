@@ -74,8 +74,10 @@ class MemoryManager:
         except Exception as e:
             logger.error(f"Error updating memory: {str(e)}")
 
-
     async def get_impression(self, group_id: int, user_id: int, character_id: str) -> Optional[str]:
+        """
+        获取用户对角色的印象。
+        """
         cache_key = (group_id, user_id, character_id)
         if cache_key in self.impression_cache:
             return self.impression_cache[cache_key]
@@ -94,29 +96,41 @@ class MemoryManager:
                     return impression.content
                 return None
         except Exception as e:
-            logger.error(f"Error getting impression: {str(e)}")
+            logger.error(
+                f"Error getting impression for group {group_id}, user {user_id}, character {character_id}: {str(e)}")
             return None
 
     async def update_impression(self, group_id: int, user_id: int, character_id: str, new_impression: str):
-        async with get_session() as session:
-            impression = await session.execute(
-                select(Impression).where(
-                    Impression.group_id == group_id,
-                    Impression.user_id == user_id,
-                    Impression.character_id == character_id
-                )
-            ).scalar_one_or_none()
-            if impression:
-                impression.content = new_impression
-            else:
-                impression = Impression(
-                    group_id=group_id, user_id=user_id, character_id=character_id, content=new_impression)
-                session.add(impression)
-            impression.updated_at = datetime.utcnow()
-            await session.commit()
-        # 更新缓存
-        self.impression_cache[(
-            group_id, user_id, character_id)] = new_impression
+        """
+        更新或创建用户对角色的印象。
+        """
+        try:
+            async with get_session() as session:
+                impression = await session.execute(
+                    select(Impression).where(
+                        Impression.group_id == group_id,
+                        Impression.user_id == user_id,
+                        Impression.character_id == character_id
+                    )
+                ).scalar_one_or_none()
+                if impression:
+                    impression.content = new_impression
+                else:
+                    impression = Impression(
+                        group_id=group_id,
+                        user_id=user_id,
+                        character_id=character_id,
+                        content=new_impression
+                    )
+                    session.add(impression)
+                impression.updated_at = datetime.utcnow()
+                await session.commit()
+            # 更新缓存
+            self.impression_cache[(
+                group_id, user_id, character_id)] = new_impression
+        except Exception as e:
+            logger.error(
+                f"Error updating impression for group {group_id}, user {user_id}, character {character_id}: {str(e)}")
 
     async def deactivate_impression(self, group_id: int, user_id: int, character_id: str):
         try:

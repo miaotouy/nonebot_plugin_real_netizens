@@ -9,15 +9,16 @@ from .logger import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 
-logger = logger.getLogger(__name__)
-async def decide_behavior(message: str, recent_messages: List[Dict], message_builder: MessageBuilder, user_id: int, character_id: str) -> Dict:
-    """根据角色设定、用户印象和最近的对话历史，决定是否回复消息以及回复类型。
+
+async def decide_behavior(message: str, recent_messages: List[Dict], message_builder: MessageBuilder, user_id: int, group_id: int) -> Dict:
+    """
+    根据角色设定、用户印象和最近的对话历史，决定是否回复消息以及回复类型。
     Args:
         message: 接收到的消息内容.
         recent_messages: 最近的几条消息
         message_builder: 消息构建器.
         user_id: 用户ID.
-        character_id: 角色ID.
+        group_id: 群ID.
     Returns:
         包含决策结果的字典，例如：
         {
@@ -32,12 +33,13 @@ async def decide_behavior(message: str, recent_messages: List[Dict], message_bui
         }
     """
     # 使用 message_builder 构建 prompt
+    character_info = character_manager.get_character_info(group_id)
     context = {
         "user_id": user_id,
         "message": message,
         "recent_messages": recent_messages,
-        "character_info": character_manager.get_character_info(character_id),
-        "user_impression": await memory_manager.get_impression(group_id, user_id, character_id) # type: ignore
+        "character_info": character_info,
+        "user_impression": await memory_manager.get_impression(group_id, user_id, character_info['character_id']),  # type: ignore
     }
     messages = message_builder.build_message(context)
     # 调用LLM生成决策结果

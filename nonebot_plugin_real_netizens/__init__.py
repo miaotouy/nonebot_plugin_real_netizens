@@ -1,31 +1,28 @@
 # __init__.py
 import nonebot
+from nonebot import get_driver, require
+from nonebot.adapters.onebot.v11 import Bot
+from nonebot.log import logger
+from nonebot.plugin import PluginMetadata
+
+from .character_manager import character_manager
+from .config import Config, plugin_config
+from .db.database import init_database
+from .db.user_info_service import save_user_info
+from .group_config_manager import group_config_manager
+from .llm_generator import llm_generator
+from .memory_manager import memory_manager
+from .message_processor import message_processor
+from .resource_loader import (character_card_loader, preset_loader,
+                              worldbook_loader)
+from .schedulers import check_inactive_chats, morning_greeting, scheduler
 
 # 加载依赖插件
 require("nonebot_plugin_datastore")
 require("nonebot_plugin_txt2img")
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_userinfo")
-
-from nonebot import get_driver, require
-from nonebot.adapters.onebot.v11 import Bot
-from nonebot.log import logger
-from nonebot.plugin import PluginMetadata
-
 # 导入其他模块
-from .character_manager import CharacterManager
-from .config import Config, plugin_config
-from .db.database import init_database
-from .db.user_info_service import save_user_info
-from .group_config_manager import group_config_manager
-from .handlers import message_handler, welcome_handler
-from .llm_generator import llm_generator
-from .memory_manager import memory_manager
-from .message_processor import process_message
-from .resource_loader import (character_card_loader, preset_loader,
-                              worldbook_loader)
-from .schedulers import check_inactive_chats, morning_greeting, scheduler
-
 # 声明插件元数据
 __plugin_meta__ = PluginMetadata(
     name="AI虚拟群友",
@@ -38,13 +35,8 @@ __plugin_meta__ = PluginMetadata(
         "author": "miaotouy",
     },
 )
-# 加载配置
-
 # 初始化组件
 driver = get_driver()
-character_manager = CharacterManager()
-llm_generator.init()
-# scheduler = require("nonebot_plugin_apscheduler").scheduler
 # 版本检查
 if not nonebot.__version__.startswith("2."):
     raise ValueError("本插件仅支持 Nonebot2")
@@ -75,20 +67,21 @@ async def init_plugin():
         logger.error(f"AI虚拟群友插件初始化失败：{str(e)}")
         raise
 # 注册事件处理器
-driver.on_message()(message_handler)
-driver.on_notice()(welcome_handler)
-# # 注册定时任务
+driver.on_message()(message_processor.process_message)  # 确保使用最新的消息处理器
+
+# 注册定时任务
 scheduler.add_job(morning_greeting, "cron", hour=8, minute=0)
 scheduler.add_job(check_inactive_chats, "interval", minutes=30)
 # 导出模块
 __all__ = [
     "Config",
-    "CharacterManager",
+    "character_manager",
     "group_config_manager",
     "llm_generator",
     "memory_manager",
-    "process_message",
+    "message_processor",
     "save_user_info",
+    "process_ai_response",
     "message_handler",
     "welcome_handler",
 ]
