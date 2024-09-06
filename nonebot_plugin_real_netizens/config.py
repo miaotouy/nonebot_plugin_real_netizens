@@ -1,4 +1,6 @@
 # config.py
+import os
+from pathlib import Path
 from typing import List
 
 import yaml
@@ -141,6 +143,32 @@ class Config(BaseSettings):
         default=False, env="DEBUG_MODE",
         description="是否启用调试模式"
     )
+    # 日志相关配置
+    LOG_TO_FILE: bool = Field(
+        default=False, 
+        env="LOG_TO_FILE", 
+        description="是否将日志输出到文件"
+    )
+    LOG_DIR: Path = Field(
+        default=Path(os.getcwd()) / "logs",
+        env="LOG_DIR",
+        description="日志文件存储目录"
+    )
+    LOG_FILE_NAME: str = Field(
+        default="nonebot_plugin_real_netizens.log",
+        env="LOG_FILE_NAME",
+        description="日志文件名"
+    )
+    LOG_FILE_MAX_SIZE: int = Field(
+        default=10,
+        env="LOG_FILE_MAX_SIZE",
+        description="单个日志文件的最大大小（MB）"
+    )
+    LOG_FILE_BACKUP_COUNT: int = Field(
+        default=5,
+        env="LOG_FILE_BACKUP_COUNT",
+        description="保留的日志文件备份数量"
+    )
 
     @classmethod
     def from_yaml(cls, file_path: str = "config/friend_config.yml") -> "Config":
@@ -183,9 +211,17 @@ class Config(BaseSettings):
             print(f"写入配置文件时出错：{e}")
         return config
 
+    @property
+    def LOG_FILE_PATH(self) -> str:
+        return str(self.LOG_DIR / self.LOG_FILE_NAME)
+
+    class Config:
+        extra = "allow"
+
 
 def get_plugin_config() -> Config:
     return plugin_config
+
 
 # 全局配置对象
 plugin_config = Config.from_yaml()
