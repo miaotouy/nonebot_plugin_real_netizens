@@ -18,7 +18,7 @@ class Config(BaseSettings):
     )
     LLM_PROXY_SERVER: str = Field(
         default="", env="LLM_PROXY_SERVER",
-        description="LLM API的代理服务器地址（如果需要）"
+        description="LLM API的代理服务器地址（如果需要）(但是暂未实现该功能)"
     )
     # LLM 模型配置
     LLM_MODEL: str = Field(
@@ -142,33 +142,45 @@ class Config(BaseSettings):
 
     @classmethod
     def from_yaml(cls, file_path: str = "config/friend_config.yml") -> "Config":
-        # 先创建一个默认配置对象
-        config = cls()
-        # 尝试从YAML文件加载配置
+        """从 YAML 文件加载配置。"""
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 yaml_data = yaml.safe_load(f)
-                if yaml_data:
-                    # 更新配置
-                    for key, value in yaml_data.items():
-                        if hasattr(config, key):
-                            setattr(config, key, value)
         except FileNotFoundError:
             print(f"配置文件 {file_path} 未找到，使用默认配置。")
+            yaml_data = {}
         except yaml.YAMLError as e:
             print(f"解析配置文件 {file_path} 时出错：{e}")
+            yaml_data = {}
+        # 使用默认配置初始化
+        config = cls()
+        # 使用yaml_data更新配置值
+        if yaml_data:
+            for field in cls.__fields__.values():
+                # 如果yaml_data中没有该字段，则写入默认值和注释
+                if field.name not in yaml_data and field.name not in ["LLM_API_KEY", "LLM_API_BASE"]:
+                    yaml_data[field.name] = field.default
+                    # 将字段描述信息作为注释添加到YAML
+                    if field.description:
+                        yaml_data[field.name] = f"# {field.description}\n{yaml_data[field.name]}"
+            # 使用更新后的yaml_data更新配置对象
+            config = config.copy(update=yaml_data)
+            config.update_forward_refs()
         # 从环境变量加载配置，这将覆盖YAML中的配置
         env_config = cls.parse_obj(get_driver().config)
         for field in cls.__fields__:
             if field in env_config.__dict__:
                 setattr(config, field, getattr(env_config, field))
-        # 将当前配置写回YAML文件
+        # 将当前配置写回YAML文件（不包括API配置）
         try:
             with open(file_path, "w", encoding="utf-8") as f:
-                yaml.dump(config.dict(), f)
+                export_data = {k: v for k,
+                               v in config.dict().items() if k not in ["LLM_API_KEY", "LLM_API_BASE"]}
+                yaml.dump(export_data, f)
         except Exception as e:
             print(f"写入配置文件时出错：{e}")
         return config
+
 
 def get_plugin_config() -> Config:
     return plugin_config

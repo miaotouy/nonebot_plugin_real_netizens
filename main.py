@@ -28,6 +28,8 @@ from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 from .message_processor import message_processor
 from .schedulers import scheduler
+from .behavior_decider import preprocess_message
+from .admin_commands import *
 
 logger = logging.getLogger(__name__)
 # 初始化组件
@@ -71,7 +73,8 @@ async def download_and_process_image(image_url: str) -> Optional[Dict]:
     async with aiohttp.ClientSession() as session:
         async with session.get(image_url) as resp:
             if resp.status != 200:
-                raise Exception(f"Failed to download image: HTTP {resp.status}")
+                raise Exception(
+                    f"Failed to download image: HTTP {resp.status}")
             image_data = await resp.read()
     # 计算图片哈希
     image_hash = hashlib.md5(image_data).hexdigest()
@@ -109,35 +112,24 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
     # 如果没有设置角色，则使用默认角色
     if not character_id:
         character_id = plugin_config.DEFAULT_CHARACTER_ID
-    message = event.get_message()
-    text_content = ""
-    image_descriptions = []
-    # 处理消息中的文本和图片
-    for segment in message:
-        if segment.type == "text":
-            text_content += segment.data['text']
-        elif segment.type == "image":
-            image_url = segment.data['url']
-            try:
-                image_info = await download_and_process_image(image_url)
-                if image_info:
-                    description = f"[图片描述: {image_info['description']}]"
-                    if image_info['is_meme']:
-                        description += f"[表情包情绪: {image_info['emotion_tag']}]"
-                    image_descriptions.append(description)
-            except Exception as e:
-                logger.error(
-                    f"Error downloading or processing image: {str(e)}")
-    # 合并文本内容和图片描述
-    full_content = text_content + " ".join(image_descriptions)
+    # 1. 消息预处理
+    full_content = await preprocess_message(event)
     # 保存消息到数据库
     await add_message(group_id, user_id, full_content)
     # 触发机制检查
     if await check_trigger(group_id, full_content, group_config):
         user_impression = await memory_manager.get_impression(group_id, user_id, character_id)
         recent_messages = await memory_manager.get_recent_messages(group_id, limit=plugin_config.CONTEXT_MESSAGE_COUNT)
-        # 行为决策
-        behavior_decision = await decide_behavior(full_content, recent_messages, character_manager.get_character_info(character_id), user_impression)
+        # 获取预设名称和世界书名称列表
+        preset_name = group_config.preset_name
+        worldbook_names = group_config.worldbook_names
+        message_builder = MessageBuilder(
+            preset_name=preset_name,
+            worldbook_names=worldbook_names,
+            character_id=character_id
+        )
+        # 2. 行为决策
+        behavior_decision = await decide_behavior(full_content, recent_messages, message_builder, user_id, character_id)
         if behavior_decision["should_reply"]:
             context = {
                 "user": event.sender.nickname,
@@ -146,14 +138,6 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 "reply_type": behavior_decision["reply_type"],
                 "priority": behavior_decision["priority"]
             }
-            # 获取预设名称和世界书名称列表
-            preset_name = group_config.preset_name
-            worldbook_names = group_config.worldbook_names
-            message_builder = MessageBuilder(
-                preset_name=preset_name,
-                worldbook_names=worldbook_names,
-                character_id=character_id
-            )
             response = await message_processor(event, recent_messages, message_builder, context)
             try:
                 parsed_response = json.loads(response)
@@ -171,7 +155,7 @@ async def handle_group_message(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 logger.error(
                     f"Failed to parse LLM response as JSON: {response}")
     # 更新记忆
-    await memory_manager.update_memory(group_id, user_id, full_content)
+    await memory_manager.update_memory(group_id, user_id, full_content, response, character_id)
 
 
 # 入群欢迎消息

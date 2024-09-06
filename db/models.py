@@ -1,7 +1,5 @@
 # db\models.py
-
 from datetime import datetime
-
 from nonebot_plugin_datastore import get_plugin_data
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer,
                         String, Text)
@@ -60,12 +58,13 @@ def init_models(plugin_data):
         group_id = Column(Integer, ForeignKey('groups.group_id'))
         user_id = Column(Integer, ForeignKey('users.user_id'))
         content = Column(Text)
-        timestamp = Column(DateTime, default=datetime.utcnow)
+        timestamp = Column(
+            DateTime, default=datetime.utcnow, index=True)  # 添加索引
         group = relationship('Group', back_populates='messages')
         user = relationship('User', back_populates='messages')
-        __table_args__ = (
-            Index('idx_message_timestamp', 'timestamp'),
-        )
+        # __table_args__ = (
+        #     Index('idx_message_timestamp', 'timestamp'),
+        # )
 
     class Impression(db.Model):
         __tablename__ = 'impressions'
@@ -85,7 +84,8 @@ def init_models(plugin_data):
         id = Column(Integer, primary_key=True)
         file_path = Column(String(255), unique=True, nullable=False)
         file_name = Column(String(255), nullable=False)
-        hash = Column(String(64), unique=True, nullable=False)
+        hash = Column(String(64), unique=True,
+                      nullable=False, index=True)  # 添加索引
         description = Column(Text)
         is_meme = Column(Boolean, default=False)
         created_at = Column(DateTime, default=datetime.utcnow)
@@ -107,9 +107,9 @@ def init_models(plugin_data):
         worldbook_name = Column(String(255))
         enabled = Column(Boolean, default=True)
         group_config = relationship("GroupConfig", back_populates="worldbooks")
-
     return User, Group, GroupUser, Message, Impression, Image, GroupConfig, GroupWorldbook
 
 
 plugin_data = get_plugin_data()
-User, Group, GroupUser, Message, Impression, Image = init_models(plugin_data)
+User, Group, GroupUser, Message, Impression, Image, GroupConfig, GroupWorldbook = init_models(
+    plugin_data)

@@ -32,6 +32,19 @@ class ImageProcessor:
             processed_image = self.preprocess_image(image_path)
             # 生成图片描述
             image_description = await self.generate_image_description(processed_image)
+
+            # 如果生成图片描述失败，记录错误并返回包含错误信息的 image_info
+            if image_description is None:
+                logger.error(f"Failed to generate image description for {image_path}")
+                return False, {
+                    'file_path': image_path,  # 保留文件路径
+                    'file_name': os.path.basename(image_path),  # 保留文件名
+                    'hash': image_hash,
+                    'description': "图片描述生成失败",
+                    'is_meme': False,
+                    'emotion_tag': None
+                }
+
             image_info = {
                 'file_path': image_path,
                 'file_name': os.path.basename(image_path),
@@ -51,6 +64,7 @@ class ImageProcessor:
                 'is_meme': False,
                 'emotion_tag': None
             }
+
 
     def preprocess_image(self, image_path: str) -> Image.Image:
         """预处理图片：调整大小和处理GIF"""
