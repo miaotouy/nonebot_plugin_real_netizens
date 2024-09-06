@@ -26,7 +26,7 @@ class Config(BaseSettings):
     )
     # LLM 模型配置
     LLM_MODEL: str = Field(
-        default="gemini-1.5-pro-001",
+        default="gemini-1.5-pro-exp-0827",
         description="使用的LLM模型名称"
     )
     LLM_MAX_TOKENS: int = Field(
