@@ -4,28 +4,67 @@ version = "0.1.0"
 description = "AI虚拟群友插件 for Nonebot2"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-
+license = "MIT"
+homepage = "https://github.com/yourusername/nonebot_plugin_real_netizens"
+repository = "https://github.com/yourusername/nonebot_plugin_real_netizens"
 [tool.poetry.dependencies]
 python = "^3.8"
-nonebot2 = "^2.0.0"
 sqlalchemy = "^1.4.0"
 pydantic = "^1.8.0"
 PyYAML = "^6.0"
 aiohttp = "^3.8.0"
+Pillow = "^8.0.0"
+cachetools = "^4.2.0"
+imagehash = "^4.2.0"
+nonebot2 = "^2.0.0"
 nonebot-adapter-onebot = "^2.0.0"
 nonebot-plugin-datastore = "^0.1.0"
 nonebot-plugin-txt2img = "^0.3.0"
 nonebot-plugin-apscheduler = "^0.2.0"
 nonebot-plugin-userinfo = "^0.1.0"
-
-# 添加其他依赖
+nonebot-plugin-localstore = "^0.1.0"
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.0"
+pytest-asyncio = "^0.14.0"
+pytest-mock = "^3.5.0"
+nonebug = "^0.2.0"
+black = "^21.5b1"
+isort = "^5.8.0"
+flake8 = "^3.9.2"
+mypy = "^0.812"
+sphinx = "^4.0.2"
+[tool.poetry.scripts]
+check-deps = "python tests/check_dependencies.py"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
 [tool.nonebot]
 plugins = ["nonebot_plugin_real_netizens"]
-
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
