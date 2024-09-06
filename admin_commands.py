@@ -1,13 +1,16 @@
 # admin_commands.py
+from typing import List
+
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot_plugin_txt2img import Txt2Img
-from typing import List
+
 from .character_manager import character_manager
 from .group_config_manager import group_config_manager
 from .memory_manager import memory_manager
+
 # 列出可用预设
 list_presets = on_command("预设列表", rule=to_me(),
                           permission=SUPERUSER, priority=5)
@@ -144,17 +147,18 @@ view_impression = on_command(
 async def handle_view_impression(bot: Bot, event: GroupMessageEvent):
     args = str(event.get_message()).strip().split()
     if len(args) != 3:
-        await view_impression.finish("使用方法：查看印象 <用户QQ> <角色ID>")
+        await view_impression.finish("使用方法：查看角色印象 <用户QQ> <角色ID>")
     user_id = args[1]
     character_id = args[2]
     group_id = event.group_id
     impression = await memory_manager.get_impression(group_id, int(user_id), character_id)
     if impression:
-        message = f"用户 {user_id} 对角色 {character_id} 的印象：\n{impression}"
+        message = f"角色 {character_id} 对用户 {user_id} 的印象：\n{impression}"  # 修改提示信息
     else:
-        message = f"未找到用户 {user_id} 对角色 {character_id} 的印象"
+        message = f"未找到角色 {character_id} 对用户 {user_id} 的印象"  # 修改提示信息
     image = await Txt2Img.render(message)
     await view_impression.finish(MessageSegment.image(image))
+
 # 手动更新印象
 update_impression = on_command(
     "更新印象", rule=to_me(), permission=SUPERUSER, priority=5)

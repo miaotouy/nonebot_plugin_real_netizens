@@ -2,11 +2,13 @@
 import json
 import logging
 from typing import Dict, List
+
 from .character_manager import character_manager
 from .config import plugin_config
 from .llm_generator import llm_generator
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
+
 logger = logging.getLogger(__name__)
 async def decide_behavior(message: str, recent_messages: List[Dict], message_builder: MessageBuilder, user_id: int, character_id: str) -> Dict:
     """根据角色设定、用户印象和最近的对话历史，决定是否回复消息以及回复类型。
