@@ -5,8 +5,8 @@ description = "AI虚拟群友插件 for Nonebot2"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
 license = "MIT"
-homepage = "https://github.com/yourusername/nonebot_plugin_real_netizens"
-repository = "https://github.com/yourusername/nonebot_plugin_real_netizens"
+homepage = "https://github.com/miaotuy/nonebot_plugin_real_netizens"
+repository = "https://github.com/miaotuy/nonebot_plugin_real_netizens"
 [tool.poetry.dependencies]
 python = "^3.8"
 sqlalchemy = "^1.4.0"
