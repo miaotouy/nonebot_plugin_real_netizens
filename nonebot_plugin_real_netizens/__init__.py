@@ -1,5 +1,12 @@
 # __init__.py
 import nonebot
+
+# 加载依赖插件
+require("nonebot_plugin_datastore")
+require("nonebot_plugin_txt2img")
+require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_userinfo")
+
 from nonebot import get_driver, require
 from nonebot.adapters.onebot.v11 import Bot
 from nonebot.log import logger
@@ -24,18 +31,15 @@ __plugin_meta__ = PluginMetadata(
     name="AI虚拟群友",
     description="基于大语言模型的AI虚拟群友插件",
     usage="自动参与群聊，无需额外命令",
+    supported_adapters={"~onebot.v11"},
     config=Config,
     extra={
         "version": "1.0.0",
-        "author": "Your Name",
+        "author": "miaotouy",
     },
 )
 # 加载配置
-# 加载依赖插件
-require("nonebot_plugin_datastore")
-require("nonebot_plugin_txt2img")
-require("nonebot_plugin_apscheduler")
-require("nonebot_plugin_userinfo")
+
 # 初始化组件
 driver = get_driver()
 character_manager = CharacterManager()
