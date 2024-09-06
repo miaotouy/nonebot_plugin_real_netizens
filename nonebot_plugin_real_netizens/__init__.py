@@ -5,6 +5,7 @@ from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
 
 # 加载依赖插件
+require("nonebot_plugin_localstore")
 require("nonebot_plugin_datastore")
 require("nonebot_plugin_txt2img")
 require("nonebot_plugin_apscheduler")

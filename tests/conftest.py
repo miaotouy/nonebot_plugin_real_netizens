@@ -3,7 +3,7 @@ import os
 import sys
 
 import pytest
-from nonebot import get_driver
+from nonebot import get_driver, require
 from nonebot.adapters.onebot.v11 import Bot, Event
 from nonebot.drivers.fastapi import Driver
 from nonebug import App
@@ -32,8 +32,11 @@ def init_nonebot():
     driver = nonebot.get_driver()
     driver.register_adapter(Adapter)
     # 初始化插件
+    nonebot.load_plugin("nonebot_plugin_localstore")
     nonebot.load_plugin("nonebot_plugin_datastore")
     nonebot.load_plugin("nonebot_plugin_txt2img")
+    nonebot.load_plugin("nonebot_plugin_apscheduler")
+    nonebot.load_plugin("nonebot_plugin_userinfo")
     nonebot.load_plugin("nonebot_plugin_real_netizens")
     yield app
 
