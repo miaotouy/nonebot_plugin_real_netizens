@@ -5,6 +5,8 @@ import yaml
 from nonebot import get_driver
 from pydantic import BaseSettings, Field
 
+from .logger import logger
+
 
 class Config(BaseSettings):
     # API 配置
@@ -147,10 +149,10 @@ class Config(BaseSettings):
             with open(file_path, "r", encoding="utf-8") as f:
                 yaml_data = yaml.safe_load(f)
         except FileNotFoundError:
-            print(f"配置文件 {file_path} 未找到，使用默认配置。")
+            logger.warning(f"配置文件 {file_path} 未找到，使用默认配置。")
             yaml_data = {}
         except yaml.YAMLError as e:
-            print(f"解析配置文件 {file_path} 时出错：{e}")
+            logger.error(f"解析配置文件 {file_path} 时出错：{e}")
             yaml_data = {}
         # 使用默认配置初始化
         config = cls()

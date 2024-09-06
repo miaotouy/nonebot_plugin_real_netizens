@@ -1,27 +1,26 @@
 # message_processor.py
 import hashlib
-import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiofiles
 import aiohttp
+from db.database import add_image_record, get_image_by_hash
 from nonebot import get_driver
 from nonebot.adapters.onebot.v11 import (GroupMessageEvent, Message,
                                          MessageSegment)
-
-from db.database import add_image_record, get_image_by_hash
 
 from .character_manager import character_manager
 from .config import Config
 from .group_config_manager import group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
+from .logger import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 
 plugin_config = Config.parse_obj(get_driver().config)
-logger = logging.getLogger(__name__)
+
 
 
 async def process_message(event: GroupMessageEvent, recent_messages: List[Dict], message_builder: MessageBuilder, context: Dict) -> Optional[str]:

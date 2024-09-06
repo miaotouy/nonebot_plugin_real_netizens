@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import json
-import logging
 import os
 from io import BytesIO
 from typing import Dict, Optional, Tuple
@@ -14,9 +13,10 @@ from PIL import Image
 from .config import Config
 from .db.database import add_image_record, get_image_by_hash
 from .llm_generator import llm_generator
+from .logger import logger
 
 plugin_config = Config.parse_obj(get_driver().config)
-logger = logging.getLogger(__name__)
+
 
 
 class ImageProcessor:

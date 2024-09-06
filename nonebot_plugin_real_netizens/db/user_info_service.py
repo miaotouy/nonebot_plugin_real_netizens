@@ -1,7 +1,8 @@
 # db\user_info_service.py
-import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
+
+from ..logger import logger
 
 if TYPE_CHECKING:
     from .models import User, Group, GroupUser
@@ -16,7 +17,7 @@ from .database import (create_group, create_group_user, create_user, get_group,
                        get_group_user, get_user, update_user)
 from .models import Group, GroupUser, User
 
-logger = logging.getLogger(__name__)
+logger = logger.getLogger(__name__)
 async def save_user_info(bot: Bot, event: Event):
     """保存用户信息到数据库"""
     user_id = event.get_user_id()

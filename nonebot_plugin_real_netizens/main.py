@@ -1,7 +1,6 @@
 # main.py
 import hashlib
 import json
-import logging
 import os
 import random
 import time
@@ -26,12 +25,12 @@ from .db.database import (add_image_record, add_message, delete_old_messages,
 from .group_config_manager import GroupConfig, group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
+from .logger import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 from .message_processor import message_processor, preprocess_message
 from .schedulers import scheduler
 
-logger = logging.getLogger(__name__)
 # 初始化组件
 character_manager = CharacterManager(
     character_cards_dir=plugin_config.CHARACTER_CARDS_DIR)

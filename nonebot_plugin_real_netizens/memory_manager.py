@@ -1,5 +1,4 @@
 # memory_manager.py
-import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -10,8 +9,7 @@ from sqlalchemy import desc, select
 
 from .config import get_plugin_config
 from .db.models import Impression, Message
-
-logger = logging.getLogger(__name__)
+from .logger import logger
 
 
 class MemoryManager:

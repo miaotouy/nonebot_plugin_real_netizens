@@ -1,6 +1,5 @@
 # group_config_manager.py
 import os
-from logging import Logger, getLogger
 from typing import Dict, List, Optional
 
 from nonebot_plugin_datastore import get_session
@@ -9,6 +8,7 @@ from sqlalchemy import delete, select
 
 from .db.models import GroupConfig as DBGroupConfig
 from .db.models import GroupWorldbook
+from .logger import logger
 from .resource_loader import (character_card_loader, preset_loader,
                               worldbook_loader)
 
@@ -53,7 +53,7 @@ class GroupConfigManager:
                         inactive_threshold=db_config.inactive_threshold,
                     )
         except Exception as e:
-            Logger.error(f"Failed to load group configs: {e}")
+            logger.error(f"Failed to load group configs: {e}")
     def get_group_config(self, group_id: int) -> GroupConfig:
         if group_id not in self.configs:
             self.configs[group_id] = GroupConfig(group_id=group_id)
@@ -87,7 +87,7 @@ class GroupConfigManager:
             # 更新内存中的配置
             self.configs[config.group_id] = config
         except Exception as e:
-            Logger.error(f"Failed to update group config: {e}")
+            logger.error(f"Failed to update group config: {e}")
 
     def get_all_groups(self) -> List[int]:
         return list(self.configs.keys())
