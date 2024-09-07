@@ -1,7 +1,13 @@
-#nonebot_plugin_real_netizens\__init__.py
+# nonebot_plugin_real_netizens\__init__.py
 # 这个不要用自动格式化！！！
 import nonebot
 from nonebot import get_driver, require
+# 声明依赖插件
+require("nonebot_plugin_datastore")
+require("nonebot_plugin_txt2img")
+require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_userinfo")
+
 from nonebot.adapters.onebot.v11 import Bot
 from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
@@ -16,12 +22,6 @@ __plugin_meta__ = PluginMetadata(
         "author": "miaotouy",
     },
 )
-# 声明依赖插件
-require("nonebot_plugin_localstore")
-require("nonebot_plugin_datastore")
-require("nonebot_plugin_txt2img")
-require("nonebot_plugin_apscheduler")
-require("nonebot_plugin_userinfo")
 from .character_manager import character_manager
 from .config import Config, plugin_config
 from .db.database import init_database

@@ -1,8 +1,10 @@
 # schedulers.py
-import time
-
 from nonebot import get_driver, require
+# 首先声明依赖插件
+scheduler = require("nonebot_plugin_apscheduler").scheduler
 
+# 然后导入其他模块
+import time
 from .character_manager import character_manager
 from .config import Config, plugin_config
 from .group_config_manager import group_config_manager
@@ -10,7 +12,6 @@ from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 from .message_processor import process_message
 
-scheduler = require("nonebot_plugin_apscheduler").scheduler
 
 
 @scheduler.scheduled_job("cron", hour=int(plugin_config.MORNING_GREETING_TIME.split(":")[0]), minute=int(plugin_config.MORNING_GREETING_TIME.split(":")[1]))

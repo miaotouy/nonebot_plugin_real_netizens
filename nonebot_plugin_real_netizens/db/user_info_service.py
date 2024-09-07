@@ -1,4 +1,9 @@
 # db\user_info_service.py
+from nonebot import require
+
+require("nonebot_plugin_datastore")
+require("nonebot_plugin_userinfo")
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 

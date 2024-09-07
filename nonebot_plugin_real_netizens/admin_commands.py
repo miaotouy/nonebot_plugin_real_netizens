@@ -1,4 +1,9 @@
-# admin_commands.py
+# admin_commands.py、
+from nonebot import require
+
+require("nonebot_plugin_txt2img")
+
+
 from typing import List
 
 from nonebot import on_command

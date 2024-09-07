@@ -1,4 +1,10 @@
 # main.py
+from nonebot import get_driver, on_command, on_message, on_notice, require
+
+require("nonebot_plugin_datastore")
+
+from nonebot_plugin_datastore import get_session
+
 import hashlib
 import json
 import os
@@ -8,13 +14,12 @@ from typing import Dict, List, Optional
 
 import aiofiles
 import aiohttp
-from nonebot import get_driver, on_command, on_message, on_notice, require
+
 from nonebot.adapters.onebot.v11 import (Bot, GroupIncreaseNoticeEvent,
                                          GroupMessageEvent, MessageSegment)
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot.typing import T_State
-from nonebot_plugin_datastore import get_session
 
 from .admin_commands import *
 from .admin_commands import handle_admin_command

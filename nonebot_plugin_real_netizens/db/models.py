@@ -1,7 +1,9 @@
 # db\models.py
-from datetime import datetime
+from nonebot import require
 
+require("nonebot_plugin_datastore")
 from nonebot_plugin_datastore import get_plugin_data
+from datetime import datetime
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer,
                         String, Text)
 from sqlalchemy.orm import relationship
