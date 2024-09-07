@@ -1,13 +1,11 @@
 # tests\conftest.py
 import os
 import sys
-
 import pytest
-from nonebot import get_driver, require
+from nonebot import get_driver, require, load_from_toml
 from nonebot.adapters.onebot.v11 import Bot, Event
 from nonebot.drivers.fastapi import Driver
 from nonebug import App
-
 # 将项目根目录添加到 Python 路径
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
@@ -16,7 +14,6 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 def init_nonebot():
     import nonebot
     from nonebot.adapters.onebot.v11 import Adapter
-
     # 设置测试用的配置
     nonebot.init(
         debug=True,
@@ -27,17 +24,14 @@ def init_nonebot():
         SUPERUSERS=["12345"],
         ENABLED_GROUPS=[67890],
     )
+    # 初始化 NoneBug App
     app = App()
-    app.register_adapter(Adapter)
     driver = nonebot.get_driver()
+    # 注册适配器
     driver.register_adapter(Adapter)
-    # 初始化插件
-    nonebot.load_plugin("nonebot_plugin_localstore")
-    nonebot.load_plugin("nonebot_plugin_datastore")
-    nonebot.load_plugin("nonebot_plugin_txt2img")
-    nonebot.load_plugin("nonebot_plugin_apscheduler")
-    nonebot.load_plugin("nonebot_plugin_userinfo")
-    nonebot.load_plugin("nonebot_plugin_real_netizens")
+    app.register_adapter(Adapter)
+    # 使用 nonebot.load_from_toml() 加载所有插件
+    load_from_toml("pyproject.toml")
     yield app
 
 
@@ -77,7 +71,7 @@ def group_message_event(bot):
         message="test message",
         raw_message="test message",
         font=1,
-        sender={'user_id': 10000, 'nickname': 'test_user'},
+        sender={"user_id": 10000, "nickname": "test_user"},
     )
 # 添加一个用于生成测试图片的fixture
 
