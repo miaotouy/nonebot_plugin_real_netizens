@@ -6,6 +6,15 @@ from nonebot import get_driver, require, load_from_toml
 from nonebot.adapters.onebot.v11 import Bot, Event
 from nonebot.drivers.fastapi import Driver
 from nonebug import App
+
+from nonebot import require
+# 在加载插件之前声明依赖
+require("nonebot_plugin_localstore")
+require("nonebot_plugin_datastore")
+require("nonebot_plugin_txt2img")
+require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_userinfo")
+
 # 将项目根目录添加到 Python 路径
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 

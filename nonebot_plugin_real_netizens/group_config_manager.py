@@ -1,7 +1,9 @@
 # group_config_manager.py
 import os
 from typing import Callable, Dict, List, Optional
+from nonebot import require
 
+require("nonebot_plugin_datastore")
 from nonebot_plugin_datastore import get_session
 from pydantic import BaseModel
 from sqlalchemy import delete, select

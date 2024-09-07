@@ -1,6 +1,9 @@
 # tests\test_message_processor.py
 import pytest
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message
+from nonebot import require
+
+require("nonebot_plugin_txt2img")
 from nonebot_plugin_txt2img import Txt2Img
 from nonebug import App
 

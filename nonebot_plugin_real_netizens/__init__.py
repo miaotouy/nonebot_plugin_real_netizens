@@ -1,4 +1,4 @@
-# nonebot_plugin_real_netizens\__init__.py
+#nonebot_plugin_real_netizens\__init__.py
 # 这个不要用自动格式化！！！
 import nonebot
 from nonebot import get_driver, require
@@ -16,6 +16,12 @@ __plugin_meta__ = PluginMetadata(
         "author": "miaotouy",
     },
 )
+# 声明依赖插件
+require("nonebot_plugin_localstore")
+require("nonebot_plugin_datastore")
+require("nonebot_plugin_txt2img")
+require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_userinfo")
 from .character_manager import character_manager
 from .config import Config, plugin_config
 from .db.database import init_database
@@ -40,12 +46,6 @@ async def init_plugin():
     from .message_processor import message_processor
     from .resource_loader import (character_card_loader, preset_loader,
                                   worldbook_loader)
-    # # 声明依赖插件
-    # require("nonebot_plugin_localstore")
-    # require("nonebot_plugin_datastore")
-    # require("nonebot_plugin_txt2img")
-    # require("nonebot_plugin_apscheduler")
-    # require("nonebot_plugin_userinfo")
     try:
         await init_database()
         logger.info("数据库初始化成功")
