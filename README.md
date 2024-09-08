@@ -1,13 +1,16 @@
 <div align="center">
+  <a href="https://v2.nonebot.dev/store"><img src="./docs/NoneBotPlugin.svg" width="400" alt="NoneBotPluginLogo"></a>
+  <br>
+  <p><img src="https://s2.loli.net/2022/06/16/xsVUGRrkbn1ljTD.png" width="240" alt="NoneBotPluginText"></p>
+</div>
 
-  <a href="https://nonebot.dev/">
-    <img src="https://nonebot.dev/logo.png" width="200" height="200" alt="nonebot">
-  </a>
-
-# nonebot_plugin_real_netizens
+<div align="center">
 
 
-✨ [Nonebot2](https://github.com/nonebot/nonebot2) AI虚拟群友插件 ✨
+## nonebot_plugin_real_netizens
+
+
+# ✨ [Nonebot2](https://github.com/nonebot/nonebot2) AI虚拟群友插件 ✨
 <p align="center">
   <img src="https://img.shields.io/github/license/miaotouy/nonebot_plugin_real_netizens" alt="license">
   <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python">
@@ -92,6 +95,8 @@ nonebot.load_plugin("nonebot_plugin_real_netizens")
 - [ ] 实现多模态支持（图片处理）
 - [ ] 完善文档和注释
 ## 贡献
+~~随缘吧~~
+
 欢迎提交 Issue 或 Pull Request 来帮助改进这个项目！
 ## 许可证
 本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
