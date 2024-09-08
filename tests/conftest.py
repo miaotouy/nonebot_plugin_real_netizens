@@ -9,7 +9,7 @@ from nonebug import App
 # 将项目根目录添加到 Python 路径
 sys.path.insert(0, os.path.abspath(
     os.path.dirname(os.path.dirname(__file__))))
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def init_nonebot():
     import nonebot
     from nonebot.adapters.onebot.v11 import Adapter
@@ -29,37 +29,31 @@ def init_nonebot():
     # 注册适配器
     driver.register_adapter(Adapter)
     app.register_adapter(Adapter)
-    # 使用 nonebot.load_from_toml() 加载所有插件
-    load_from_toml("pyproject.toml")
-    # 在 nonebot.init() 之后声明依赖
-    require("nonebot_plugin_datastore")
-    require("nonebot_plugin_txt2img")
-    require("nonebot_plugin_apscheduler")
-    require("nonebot_plugin_userinfo")
+    # 在插件加载完成后，再注册 on_startup 钩子
+    async def register_on_startup():
+        from nonebot_plugin_real_netizens.behavior_decider import register_scheduler
+        from nonebot_plugin_real_netizens import init_plugin  # 从 __init__.py 中导入 init_plugin
+
+        # 延迟加载插件
+        load_from_toml("pyproject.toml")
+
+        await init_plugin() # 调用插件初始化函数
+        register_scheduler()
+    driver.on_startup(register_on_startup)
     yield app
-
-
 @pytest.fixture
 def app(init_nonebot):
     return init_nonebot
-
-
 @pytest.fixture
 def driver():
     return get_driver()
-
-
 @pytest.fixture
 def bot():
     return Bot("test", "test")
-
-
 @pytest.fixture
 def event():
     return Event()
 # 添加一个模拟的群消息事件
-
-
 @pytest.fixture
 def group_message_event(bot):
     from nonebot.adapters.onebot.v11 import GroupMessageEvent
@@ -78,8 +72,6 @@ def group_message_event(bot):
         sender={"user_id": 10000, "nickname": "test_user"},
     )
 # 添加一个用于生成测试图片的fixture
-
-
 @pytest.fixture
 async def mock_image():
     from nonebot_plugin_txt2img import Txt2Img

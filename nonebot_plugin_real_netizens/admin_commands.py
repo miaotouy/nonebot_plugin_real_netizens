@@ -1,12 +1,9 @@
 # admin_commands.py、
-from nonebot import require
-
-require("nonebot_plugin_txt2img")
+from nonebot import require, on_command
 
 
 from typing import List
 
-from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me

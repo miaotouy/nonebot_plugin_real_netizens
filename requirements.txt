@@ -13,6 +13,7 @@ nonebot-plugin-txt2img>=0.3.0
 nonebot-plugin-apscheduler>=0.2.0
 nonebot-plugin-userinfo>=0.1.0
 nonebot-plugin-localstore>=0.1.0
+nonebot-plugin-send-anything-anywhere = "^0.1.0"
 pytest>=6.2.0
 pytest-asyncio>=0.14.0
 pytest-mock>=3.5.0

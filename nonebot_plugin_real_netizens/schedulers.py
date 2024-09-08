@@ -1,8 +1,6 @@
 # schedulers.py
 from nonebot import get_driver, require
-# 首先声明依赖插件
 scheduler = require("nonebot_plugin_apscheduler").scheduler
-
 # 然后导入其他模块
 import time
 from .character_manager import character_manager

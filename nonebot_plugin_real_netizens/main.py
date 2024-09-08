@@ -1,7 +1,5 @@
 # main.py
-from nonebot import get_driver, on_command, on_message, on_notice, require
-
-require("nonebot_plugin_datastore")
+from nonebot import get_driver, on_command, on_message, on_notice
 
 from nonebot_plugin_datastore import get_session
 
@@ -22,7 +20,6 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from .admin_commands import *
-from .admin_commands import handle_admin_command
 from .behavior_decider import decide_behavior
 from .character_manager import CharacterManager
 from .config import plugin_config

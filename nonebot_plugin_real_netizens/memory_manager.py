@@ -1,6 +1,5 @@
 # memory_manager.py
-from nonebot import require
-require("nonebot_plugin_datastore")
+
 
 from nonebot_plugin_datastore import get_session
 
