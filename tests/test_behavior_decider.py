@@ -1,14 +1,12 @@
 # tests\test_behavior_decider.py
 import pytest
 from nonebug import App
-
-from nonebot_plugin_real_netizens.behavior_decider import decide_behavior
-from nonebot_plugin_real_netizens.config import Config
-from nonebot_plugin_real_netizens.message_builder import MessageBuilder
-
-
+from nonebot.adapters.onebot.v11 import Bot, Event
 @pytest.mark.asyncio
-async def test_decide_behavior(app: App, mocker):
+async def test_decide_behavior(app: App, mocker, bot: Bot, event: Event):
+    from nonebot_plugin_real_netizens.behavior_decider import decide_behavior
+    from nonebot_plugin_real_netizens.config import Config
+    from nonebot_plugin_real_netizens.message_builder import MessageBuilder
     # 模拟配置
     mocker.patch('nonebot_plugin_real_netizens.behavior_decider.plugin_config', Config(
         LLM_MODEL="test_model",
@@ -16,7 +14,7 @@ async def test_decide_behavior(app: App, mocker):
         LLM_MAX_TOKENS=100,
         TRIGGER_PROBABILITY=0.5
     ))
-    # 模拟LLM生成器
+    # 模拟 LLM 生成器
     mock_llm_generator = mocker.patch(
         'nonebot_plugin_real_netizens.behavior_decider.llm_generator')
     mock_llm_generator.generate_response.return_value = '{"should_reply": true, "reply_type": "text", "reason": "Test reason", "thoughts": "Test thoughts"}'
@@ -27,10 +25,15 @@ async def test_decide_behavior(app: App, mocker):
     message = "Hello"
     recent_messages = [{"role": "user", "content": "Hi"}]
     message_builder = MessageBuilder(
-        "test_preset", ["test_worldbook"], "test_character")
+        preset_name="test_preset",
+        worldbook_names=["test_worldbook"],
+        character_id="test_character"
+    )
     user_id = 123
     group_id = 456
+    # 调用 decide_behavior 函数
     result = await decide_behavior(message, recent_messages, message_builder, user_id, group_id)
+    # 断言
     assert isinstance(result, dict)
     assert "should_reply" in result
     assert "reply_type" in result
@@ -40,16 +43,25 @@ async def test_decide_behavior(app: App, mocker):
     assert result["reply_type"] == "text"
     assert result["reason"] == "Test reason"
     assert result["thoughts"] == "Test thoughts"
-    # 验证LLM生成器被正确调用
+    # 验证 LLM 生成器被正确调用
     mock_llm_generator.generate_response.assert_called_once()
     # 验证内存管理器被正确调用
     mock_memory_manager.get_impression.assert_called_once_with(
-        group_id, user_id, "test_character")
-
-
+        group_id, user_id, "test_character"
+    )
 @pytest.mark.asyncio
-async def test_decide_behavior_error_handling(app: App, mocker):
-    # 模拟LLM生成器抛出异常
+async def test_decide_behavior_error_handling(app: App, mocker, bot: Bot, event: Event):
+    from nonebot_plugin_real_netizens.behavior_decider import decide_behavior
+    from nonebot_plugin_real_netizens.config import Config
+    from nonebot_plugin_real_netizens.message_builder import MessageBuilder
+    # 模拟配置
+    mocker.patch('nonebot_plugin_real_netizens.behavior_decider.plugin_config', Config(
+        LLM_MODEL="test_model",
+        LLM_TEMPERATURE=0.7,
+        LLM_MAX_TOKENS=100,
+        TRIGGER_PROBABILITY=0.5
+    ))
+    # 模拟 LLM 生成器抛出异常
     mock_llm_generator = mocker.patch(
         'nonebot_plugin_real_netizens.behavior_decider.llm_generator')
     mock_llm_generator.generate_response.side_effect = Exception(
@@ -57,10 +69,15 @@ async def test_decide_behavior_error_handling(app: App, mocker):
     message = "Hello"
     recent_messages = [{"role": "user", "content": "Hi"}]
     message_builder = MessageBuilder(
-        "test_preset", ["test_worldbook"], "test_character")
+        preset_name="test_preset",
+        worldbook_names=["test_worldbook"],
+        character_id="test_character"
+    )
     user_id = 123
     group_id = 456
+    # 调用 decide_behavior 函数
     result = await decide_behavior(message, recent_messages, message_builder, user_id, group_id)
+    # 断言
     assert isinstance(result, dict)
     assert result["should_reply"] is False
     assert result["reason"] == "解析错误"

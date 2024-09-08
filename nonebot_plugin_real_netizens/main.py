@@ -26,33 +26,41 @@ from .llm_generator import llm_generator
 from .logger import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
-from .message_processor import message_processor, preprocess_message
+from .message_processor import message_processor
 from .schedulers import scheduler
 
 
 async def init_plugin():
-    # 在这里放置插件的初始化逻辑
+    """初始化插件"""
     from .db.database import init_database
     from .schedulers import scheduler
-    from .resource_loader import character_card_loader, preset_loader, worldbook_loader
+    from .resource_loader import (character_card_loader, preset_loader,
+                                 worldbook_loader)
+    global character_manager  # 声明 character_manager 为全局变量
+    # 创建 character_manager 实例
+    character_manager = CharacterManager(group_config_manager)
+    # 初始化数据库
     try:
         await init_database()
         logger.info("数据库初始化成功")
     except Exception as e:
         logger.error(f"数据库初始化失败：{str(e)}")
         raise
+    # 加载群组配置
     try:
         await group_config_manager.load_configs()
         logger.info("群组配置加载成功")
     except Exception as e:
         logger.error(f"群组配置加载失败：{str(e)}")
         raise
+    # 加载角色数据
     try:
         await character_manager.load_characters()
         logger.info("角色管理器初始化成功")
     except Exception as e:
         logger.error(f"角色管理器初始化失败：{str(e)}")
         raise
+    # 加载世界书和预设
     try:
         await worldbook_loader.load_resource("世界书条目示例")
         await preset_loader.load_resource("预设示例")
@@ -60,6 +68,7 @@ async def init_plugin():
     except Exception as e:
         logger.error(f"资源加载失败：{str(e)}")
         raise
+    # 设置机器人 ID
     try:
         driver = nonebot.get_driver()
         bot = list(driver.bots.values())[0]  # 获取第一个机器人实例
@@ -71,17 +80,17 @@ async def init_plugin():
     # 启动调度器
     scheduler.start()
     logger.info("调度器启动成功")
+    # 检查 LLM API 密钥
     if not plugin_config.LLM_API_KEY:
         logger.warning("LLM API密钥未设置，部分功能可能无法正常工作")
     logger.info("AI虚拟群友插件初始化完成")
-
-    character_manager.init(plugin_config.CHARACTER_CARDS_DIR)
-    llm_generator.init()
-
     # 注册定时任务
-    scheduler.add_job(morning_greeting, "cron",
-                      hour=int(plugin_config.MORNING_GREETING_TIME.split(":")[0]),
-                      minute=int(plugin_config.MORNING_GREETING_TIME.split(":")[1]))
+    scheduler.add_job(
+        morning_greeting,
+        "cron",
+        hour=int(plugin_config.MORNING_GREETING_TIME.split(":")[0]),
+        minute=int(plugin_config.MORNING_GREETING_TIME.split(":")[1]),
+    )
     scheduler.add_job(check_inactive_chats, "interval", minutes=30)
     scheduler.add_job(clean_old_messages, "cron", hour=3)
 

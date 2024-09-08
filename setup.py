@@ -4,12 +4,12 @@ setup(
     name='nonebot_plugin_real_netizens',
     version='0.1.0',
     packages=find_packages(),
-    author='miaotouy',  # 这里请填写你的姓名
-    author_email='pngbige@163.com',  # 这里请填写你的邮箱地址
+    author='miaotouy',
+    author_email='pngbige@163.com',
     description='AI虚拟群友插件 for Nonebot2',
     long_description=open('README.md', 'r', encoding='utf-8').read(),
     long_description_content_type="text/markdown",
-    url='{https://github.com/miaotouy/nonebot_plugin_real_netizens}',  # 这里请填写你的插件项目的地址，例如：GitHub 仓库地址
+    url='{https://github.com/miaotouy/nonebot_plugin_real_netizens}',
     license='MIT License',
     install_requires=[
         'sqlalchemy>=1.4.0',
