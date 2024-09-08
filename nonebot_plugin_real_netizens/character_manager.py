@@ -2,7 +2,7 @@
 import asyncio
 import os
 from typing import Any, Dict, List, Optional, Union
-from .logger import logger
+from nonebot.log import logger
 from .resource_loader import character_card_loader, worldbook_loader
 class CharacterManager:
     """

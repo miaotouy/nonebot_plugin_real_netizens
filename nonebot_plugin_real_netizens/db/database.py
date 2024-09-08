@@ -1,7 +1,4 @@
 # db\database.py
-from nonebot import require
-
-require("nonebot_plugin_datastore")
 
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional

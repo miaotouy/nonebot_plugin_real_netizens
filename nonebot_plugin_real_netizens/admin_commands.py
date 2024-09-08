@@ -11,7 +11,7 @@ from nonebot_plugin_txt2img import Txt2Img
 
 from .character_manager import character_manager
 from .group_config_manager import group_config_manager
-from .logger import logger
+from nonebot.log import logger
 from .memory_manager import memory_manager
 
 # 定义所有管理命令

@@ -1,4 +1,4 @@
-# config.py
+# nonebot_plugin_real_netizens\config.py
 import os
 from pathlib import Path
 from typing import List
@@ -7,7 +7,7 @@ import yaml
 from nonebot import get_driver
 from pydantic import BaseSettings, Field
 
-from .logger import logger
+from nonebot.log import logger
 
 
 class Config(BaseSettings):

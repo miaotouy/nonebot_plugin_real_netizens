@@ -15,7 +15,7 @@ from .config import Config
 from .group_config_manager import group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
-from .logger import logger
+from nonebot.log import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 

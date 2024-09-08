@@ -9,7 +9,7 @@ from sqlalchemy import delete, select
 
 from .db.models import GroupConfig as DBGroupConfig
 from .db.models import GroupWorldbook
-from .logger import logger
+from nonebot.log import logger
 from .resource_loader import (character_card_loader, preset_loader,
                               worldbook_loader)
 

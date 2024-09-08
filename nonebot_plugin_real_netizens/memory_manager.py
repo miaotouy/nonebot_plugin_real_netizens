@@ -12,7 +12,7 @@ from sqlalchemy import desc, select
 
 from .config import get_plugin_config
 from .db.models import Impression, Message
-from .logger import logger
+from nonebot.log import logger
 
 
 class MemoryManager:

@@ -1,13 +1,16 @@
 # nonebot_plugin_real_netizens/__init__.py
 # 禁止自动格式化！！！
-from nonebot import get_driver, require, on_startup
+from nonebot import get_driver, require
+import nonebot
+# 初始化 NoneBot
+nonebot.init()
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_datastore")
 require("nonebot_plugin_txt2img")
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_userinfo")
 require("nonebot_plugin_saa")
-import nonebot
+
 from nonebot.adapters.onebot.v11 import Bot
 from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
@@ -19,6 +22,7 @@ from .memory_manager import memory_manager
 from .message_processor import message_processor
 from .db.user_info_service import save_user_info
 from .main import init_plugin
+
 __plugin_meta__ = PluginMetadata(
     name="AI虚拟群友",
     description="基于大语言模型的AI虚拟群友插件",
@@ -33,6 +37,6 @@ __plugin_meta__ = PluginMetadata(
 if not nonebot.__version__.startswith("2."):
     raise ValueError("本插件仅支持 Nonebot2")
 driver = get_driver()
-@driver.on_startup
-async def _():
-    await init_plugin() # 调用 init_plugin 函数进行初始化
+@driver.on_bot_connect
+async def _(bot: Bot):
+    await init_plugin()  # 调用 init_plugin 函数进行初始化

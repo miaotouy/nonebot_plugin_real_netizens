@@ -13,7 +13,7 @@ from PIL import Image
 from .config import Config
 from .db.database import add_image_record, get_image_by_hash
 from .llm_generator import llm_generator
-from .logger import logger
+from nonebot.log import logger
 
 plugin_config = Config.parse_obj(get_driver().config)
 

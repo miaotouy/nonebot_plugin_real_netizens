@@ -23,7 +23,7 @@ from .db.database import (add_image_record, add_message, delete_old_messages, ge
 from .group_config_manager import GroupConfig, group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
-from .logger import logger
+from nonebot.log import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 from .message_processor import message_processor
