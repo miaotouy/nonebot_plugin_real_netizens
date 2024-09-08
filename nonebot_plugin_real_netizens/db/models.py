@@ -1,4 +1,4 @@
-# db\models.py
+# nonebot_plugin_real_netizens\db\models.py
 
 from nonebot_plugin_datastore import get_plugin_data
 from datetime import datetime

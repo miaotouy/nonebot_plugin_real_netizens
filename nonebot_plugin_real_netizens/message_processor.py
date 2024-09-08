@@ -1,4 +1,4 @@
-# message_processor.py
+# nonebot_plugin_real_netizens\message_processor.py
 import hashlib
 import os
 from typing import Any, Dict, List, Optional, Tuple

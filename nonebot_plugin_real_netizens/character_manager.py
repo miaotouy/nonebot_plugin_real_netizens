@@ -4,6 +4,8 @@ import os
 from typing import Any, Dict, List, Optional, Union
 from nonebot.log import logger
 from .resource_loader import character_card_loader, worldbook_loader
+from .group_config_manager import group_config_manager
+
 class CharacterManager:
     """
     角色管理器，负责加载和管理角色卡信息，以及世界书内容。
@@ -97,4 +99,6 @@ class CharacterManager:
         for worldbook_name in worldbook_names:
             worldbook_entries.extend(self.worldbooks.get(worldbook_name, []))
         return worldbook_entries
-# character_manager = CharacterManager()  # 不要在这里创建实例
+
+
+character_manager = CharacterManager(group_config_manager)

@@ -1,4 +1,4 @@
-# behavior_decider.py
+# nonebot_plugin_real_netizens\behavior_decider.py
 import json
 from typing import Dict, List
 

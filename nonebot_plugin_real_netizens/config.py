@@ -143,6 +143,10 @@ class Config(BaseSettings):
         default=False, env="DEBUG_MODE",
         description="是否启用调试模式"
     )
+    RES_PATH: str = Field(
+        default="res",
+        description="资源文件根目录路径"
+    )
     # 日志相关配置
     LOG_TO_FILE: bool = Field(
         default=False, 

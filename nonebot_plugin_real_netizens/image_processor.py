@@ -1,3 +1,4 @@
+# nonebot_plugin_real_netizens\image_processor.py
 import asyncio
 import base64
 import json

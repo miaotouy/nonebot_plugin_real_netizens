@@ -1,4 +1,4 @@
-# message_builder.py
+# nonebot_plugin_real_netizens\message_builder.py
 import json
 import os
 import re

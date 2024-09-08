@@ -1,4 +1,4 @@
-# db\user_info_service.py
+# nonebot_plugin_real_netizens\db\user_info_service.py
 
 
 from datetime import datetime

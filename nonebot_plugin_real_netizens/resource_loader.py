@@ -1,4 +1,4 @@
-# resource_loader.py
+# nonebot_plugin_real_netizens\resource_loader.py
 import asyncio
 import json
 import os

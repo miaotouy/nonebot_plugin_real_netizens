@@ -1,4 +1,4 @@
-# admin_commands.py、
+# nonebot_plugin_real_netizens\admin_commands.py
 from nonebot import require, on_command
 
 

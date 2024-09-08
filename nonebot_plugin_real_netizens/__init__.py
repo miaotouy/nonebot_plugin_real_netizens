@@ -40,3 +40,4 @@ driver = get_driver()
 @driver.on_bot_connect
 async def _(bot: Bot):
     await init_plugin()  # 调用 init_plugin 函数进行初始化
+

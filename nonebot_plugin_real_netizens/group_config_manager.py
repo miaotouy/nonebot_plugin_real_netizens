@@ -1,4 +1,4 @@
-# group_config_manager.py
+# nonebot_plugin_real_netizens\group_config_manager.py
 
 import os
 from nonebot_plugin_datastore import get_session

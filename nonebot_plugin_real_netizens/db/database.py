@@ -1,4 +1,4 @@
-# db\database.py
+# nonebot_plugin_real_netizens\db\database.py
 
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional

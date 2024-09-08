@@ -1,4 +1,4 @@
-# schedulers.py
+# nonebot_plugin_real_netizens\schedulers.py
 from nonebot import get_driver, require
 scheduler = require("nonebot_plugin_apscheduler").scheduler
 # 然后导入其他模块
