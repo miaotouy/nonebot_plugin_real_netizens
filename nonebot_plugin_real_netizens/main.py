@@ -1,30 +1,25 @@
-# main.py
-from nonebot import get_driver, on_command, on_message, on_notice
-
-from nonebot_plugin_datastore import get_session
-
+# nonebot_plugin_real_netizens\main.py
 import hashlib
 import json
 import os
 import random
 import time
 from typing import Dict, List, Optional
-
 import aiofiles
 import aiohttp
-
+from nonebot import get_driver, on_command, on_message, on_notice
+import nonebot
 from nonebot.adapters.onebot.v11 import (Bot, GroupIncreaseNoticeEvent,
                                          GroupMessageEvent, MessageSegment)
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot.typing import T_State
-
+from nonebot_plugin_datastore import get_session
 from .admin_commands import *
 from .behavior_decider import decide_behavior
 from .character_manager import CharacterManager
 from .config import plugin_config
-from .db.database import (add_image_record, add_message, delete_old_messages,
-                          get_image_by_hash)
+from .db.database import (add_image_record, add_message, delete_old_messages, get_image_by_hash)
 from .group_config_manager import GroupConfig, group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
@@ -34,10 +29,62 @@ from .message_builder import MessageBuilder
 from .message_processor import message_processor, preprocess_message
 from .schedulers import scheduler
 
-# 初始化组件
-character_manager = CharacterManager(
-    character_cards_dir=plugin_config.CHARACTER_CARDS_DIR)
-llm_generator.init()
+
+async def init_plugin():
+    # 在这里放置插件的初始化逻辑
+    from .db.database import init_database
+    from .schedulers import scheduler
+    from .resource_loader import character_card_loader, preset_loader, worldbook_loader
+    try:
+        await init_database()
+        logger.info("数据库初始化成功")
+    except Exception as e:
+        logger.error(f"数据库初始化失败：{str(e)}")
+        raise
+    try:
+        await group_config_manager.load_configs()
+        logger.info("群组配置加载成功")
+    except Exception as e:
+        logger.error(f"群组配置加载失败：{str(e)}")
+        raise
+    try:
+        await character_manager.load_characters()
+        logger.info("角色管理器初始化成功")
+    except Exception as e:
+        logger.error(f"角色管理器初始化失败：{str(e)}")
+        raise
+    try:
+        await worldbook_loader.load_resource("世界书条目示例")
+        await preset_loader.load_resource("预设示例")
+        logger.info("资源加载成功")
+    except Exception as e:
+        logger.error(f"资源加载失败：{str(e)}")
+        raise
+    try:
+        driver = nonebot.get_driver()
+        bot = list(driver.bots.values())[0]  # 获取第一个机器人实例
+        await memory_manager.set_bot_id(bot)
+        logger.info("机器人ID设置成功")
+    except Exception as e:
+        logger.error(f"机器人ID设置失败：{str(e)}")
+        raise
+    # 启动调度器
+    scheduler.start()
+    logger.info("调度器启动成功")
+    if not plugin_config.LLM_API_KEY:
+        logger.warning("LLM API密钥未设置，部分功能可能无法正常工作")
+    logger.info("AI虚拟群友插件初始化完成")
+
+    character_manager.init(plugin_config.CHARACTER_CARDS_DIR)
+    llm_generator.init()
+
+    # 注册定时任务
+    scheduler.add_job(morning_greeting, "cron",
+                      hour=int(plugin_config.MORNING_GREETING_TIME.split(":")[0]),
+                      minute=int(plugin_config.MORNING_GREETING_TIME.split(":")[1]))
+    scheduler.add_job(check_inactive_chats, "interval", minutes=30)
+    scheduler.add_job(clean_old_messages, "cron", hour=3)
+
 # 消息处理器
 message_handler = on_message(priority=5)
 
