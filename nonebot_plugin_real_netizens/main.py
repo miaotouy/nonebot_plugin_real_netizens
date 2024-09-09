@@ -5,25 +5,36 @@ import os
 import random
 import time
 from typing import Dict, List, Optional
+
 import aiofiles
 import aiohttp
-from nonebot import get_driver, on_command, on_message, on_notice
 import nonebot
-from nonebot.adapters.onebot.v11 import (Bot, GroupIncreaseNoticeEvent,
-                                         GroupMessageEvent, MessageSegment)
+from nonebot import get_driver, on_command, on_message, on_notice
+from nonebot.adapters.onebot.v11 import (
+    Bot,
+    GroupIncreaseNoticeEvent,
+    GroupMessageEvent,
+    MessageSegment,
+)
+from nonebot.log import logger
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 from nonebot_plugin_datastore import get_session
+
 from .admin_commands import *
 from .behavior_decider import decide_behavior
 from .character_manager import CharacterManager
 from .config import plugin_config
-from .db.database import (add_image_record, add_message, delete_old_messages, get_image_by_hash)
+from .db.database import (
+    add_image_record,
+    add_message,
+    delete_old_messages,
+    get_image_by_hash,
+)
 from .group_config_manager import GroupConfig, group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
-from nonebot.log import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 from .message_processor import message_processor
@@ -33,9 +44,8 @@ from .schedulers import scheduler
 async def init_plugin():
     """初始化插件"""
     from .db.database import init_database
+    from .resource_loader import character_card_loader, preset_loader, worldbook_loader
     from .schedulers import scheduler
-    from .resource_loader import (character_card_loader, preset_loader,
-                                 worldbook_loader)
     global character_manager  # 声明 character_manager 为全局变量
     # 创建 character_manager 实例
     character_manager = CharacterManager(group_config_manager)

@@ -5,9 +5,8 @@ from typing import List
 
 import yaml
 from nonebot import get_driver
-from pydantic import BaseSettings, Field
-
 from nonebot.log import logger
+from pydantic import BaseSettings, Field
 
 
 class Config(BaseSettings):
@@ -175,7 +174,7 @@ class Config(BaseSettings):
     )
 
     @classmethod
-    def from_yaml(cls, file_path: str = "config/friend_config.yml") -> "Config":
+    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml") -> "Config":
         """从 YAML 文件加载配置。"""
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -195,8 +194,8 @@ class Config(BaseSettings):
                 if field.name not in yaml_data and field.name not in ["LLM_API_KEY", "LLM_API_BASE"]:
                     yaml_data[field.name] = field.default
                     # 将字段描述信息作为注释添加到YAML
-                    if field.description:
-                        yaml_data[field.name] = f"# {field.description}\n{yaml_data[field.name]}"
+                    if field.field_info.description:
+                        yaml_data[field.name] = f"# {field.field_info.description}\n{yaml_data[field.name]}"
             # 使用更新后的yaml_data更新配置对象
             config = config.copy(update=yaml_data)
             config.update_forward_refs()

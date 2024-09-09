@@ -5,17 +5,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiofiles
 import aiohttp
-from db.database import add_image_record, get_image_by_hash
+from .db.database import add_image_record, get_image_by_hash
 from nonebot import get_driver
-from nonebot.adapters.onebot.v11 import (GroupMessageEvent, Message,
-                                         MessageSegment)
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message, MessageSegment
+from nonebot.log import logger
 
 from .character_manager import character_manager
 from .config import Config
 from .group_config_manager import group_config_manager
 from .image_processor import image_processor
 from .llm_generator import llm_generator
-from nonebot.log import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 

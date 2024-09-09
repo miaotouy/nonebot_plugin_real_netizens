@@ -2,10 +2,11 @@
 import json
 from typing import Dict, List
 
+from nonebot.log import logger
+
 from .character_manager import character_manager
 from .config import plugin_config
 from .llm_generator import llm_generator
-from nonebot.log import logger
 from .memory_manager import memory_manager
 from .message_builder import MessageBuilder
 

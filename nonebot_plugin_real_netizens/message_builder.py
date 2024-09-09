@@ -5,13 +5,11 @@ import re
 from string import Template
 from typing import Any, Dict, List, Union
 
+from config import Config
 from nonebot import get_driver
 
-from config import Config
-
 from .character_manager import character_manager
-from .resource_loader import (character_card_loader, preset_loader,
-                              worldbook_loader)
+from .resource_loader import character_card_loader, preset_loader, worldbook_loader
 
 
 class MessageBuilder:

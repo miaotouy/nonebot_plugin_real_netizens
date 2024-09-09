@@ -1,7 +1,7 @@
 # nonebot_plugin_real_netizens/__init__.py
 # 不要自动格式化
-from nonebot import get_driver, require
 import nonebot
+from nonebot import get_driver, require
 
 # 初始化 NoneBot
 nonebot.init()
@@ -18,28 +18,28 @@ from nonebot.adapters.onebot.v11 import Bot
 from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
 
-from .config import Config, plugin_config
-
 # 从 nonebot_plugin_datastore.db 导入
 from nonebot_plugin_datastore import get_plugin_data
 from nonebot_plugin_datastore.db import post_db_init
+
+from .config import Config, plugin_config
 
 # 获取 PluginData 对象
 plugin_data = get_plugin_data("nonebot_plugin_real_netizens")
 
 # 在此处调用 init_models
 from .db.models import init_models
+
 init_models(plugin_data)
 
 # 现在可以安全地导入 character_manager 了
-from .character_manager import character_manager, CharacterManager
+from .character_manager import CharacterManager, character_manager
+from .db.user_info_service import save_user_info
 from .group_config_manager import group_config_manager
 from .llm_generator import llm_generator
+from .main import init_plugin
 from .memory_manager import memory_manager
 from .message_processor import message_processor
-
-from .db.user_info_service import save_user_info
-from .main import init_plugin
 
 __plugin_meta__ = PluginMetadata(
     name="AI虚拟群友",

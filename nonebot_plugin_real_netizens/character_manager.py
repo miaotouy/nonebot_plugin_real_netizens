@@ -2,9 +2,12 @@
 import asyncio
 import os
 from typing import Any, Dict, List, Optional, Union
+
 from nonebot.log import logger
-from .resource_loader import character_card_loader, worldbook_loader
+
 from .group_config_manager import group_config_manager
+from .resource_loader import character_card_loader, worldbook_loader
+
 
 class CharacterManager:
     """

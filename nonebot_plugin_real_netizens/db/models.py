@@ -102,11 +102,13 @@ def init_models(plugin_data):
         emotion_tag = Column(String(255))  # 添加 emotion_tag 字段
         created_at = Column(DateTime, default=datetime.utcnow)
 
+
         async def add_image_record(self, image_info: Dict):
             async with get_session() as session:
                 new_image = Image(**image_info)
                 session.add(new_image)
                 await session.commit()
+
 
         async def get_image_by_hash(self, image_hash: str) -> Optional[Dict]:
             async with get_session() as session:
@@ -141,7 +143,7 @@ def init_models(plugin_data):
         id = Column(Integer, primary_key=True)
         group_id = Column(Integer, ForeignKey("group_configs.group_id"))
         worldbook_name = Column(String(255))
-        enabled = Column(Boolean, default=True)
+        enabled = Column(Boolean, default=False)
         group_config = relationship("GroupConfig", back_populates="worldbooks")
 
     db_models["GroupWorldbook"] = GroupWorldbook

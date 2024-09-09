@@ -15,9 +15,17 @@ from nonebot_plugin_datastore import get_session
 from nonebot_plugin_userinfo import UserInfo, get_user_info
 
 from ..image_processor import image_processor
-from .database import (create_group, create_group_user, create_user, get_group,
-                       get_group_user, get_user, update_user)
+from .database import (
+    create_group,
+    create_group_user,
+    create_user,
+    get_group,
+    get_group_user,
+    get_user,
+    update_user,
+)
 from .models import Group, GroupUser, User
+
 
 async def save_user_info(bot: Bot, event: Event):
     """保存用户信息到数据库"""

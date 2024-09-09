@@ -1,17 +1,16 @@
 # nonebot_plugin_real_netizens\group_config_manager.py
 
 import os
-from nonebot_plugin_datastore import get_session
-
 from typing import Callable, Dict, List, Optional
+
+from nonebot.log import logger
+from nonebot_plugin_datastore import get_session
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 
 from .db.models import GroupConfig as DBGroupConfig
 from .db.models import GroupWorldbook
-from nonebot.log import logger
-from .resource_loader import (character_card_loader, preset_loader,
-                              worldbook_loader)
+from .resource_loader import character_card_loader, preset_loader, worldbook_loader
 
 
 class GroupConfig(BaseModel):
