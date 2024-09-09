@@ -7,8 +7,7 @@ from nonebot.adapters.onebot.v11 import Bot, Event, Adapter as OneBotV11Adapter
 from nonebot.drivers.fastapi import Driver
 from nonebug import App
 # 将项目根目录添加到 Python 路径
-sys.path.insert(0, os.path.abspath(
-    os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 @pytest.fixture(scope="session")
 async def app() -> App:
     # 加载 NoneBot 插件
@@ -18,16 +17,18 @@ async def app() -> App:
     driver = get_driver()
     # 注册适配器
     driver.register_adapter(OneBotV11Adapter)
-    app.register_adapter(OneBotV11Adapter)
     # 返回 NoneBug App 实例
     return app
+
 # 其他 fixture 和测试辅助函数
 @pytest.fixture
 def bot(app: App):
     return Bot(app=app, self_id="test")
+
 @pytest.fixture
 def event():
     return Event()
+
 # 添加一个模拟的群消息事件
 @pytest.fixture
 def group_message_event(bot: Bot):
@@ -46,6 +47,7 @@ def group_message_event(bot: Bot):
         font=1,
         sender={"user_id": 10000, "nickname": "test_user"},
     )
+
 # 添加一个用于生成测试图片的 fixture
 @pytest.fixture
 async def mock_image():

@@ -5,7 +5,7 @@ import re
 from string import Template
 from typing import Any, Dict, List, Union
 
-from config import Config
+from .config import Config
 from nonebot import get_driver
 
 from .character_manager import character_manager

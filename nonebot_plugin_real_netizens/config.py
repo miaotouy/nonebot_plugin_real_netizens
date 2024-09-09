@@ -2,7 +2,6 @@
 import os
 from pathlib import Path
 from typing import List
-
 import yaml
 from nonebot import get_driver
 from nonebot.log import logger
@@ -28,13 +27,18 @@ class Config(BaseSettings):
         default="gemini-1.5-pro-exp-0827",
         description="使用的LLM模型名称"
     )
+    FAST_LLM_MODEL: str = Field(
+        default="gemini-1.5-flash-exp-0827",
+        description="用于快速回复的 LLM 模型"
+    )
     LLM_MAX_TOKENS: int = Field(
         default=4096,
         description="LLM生成的最大token数"
     )
     LLM_TEMPERATURE: float = Field(
         default=0.7,
-        description="LLM生成的温度参数，控制输出的随机性（0.0-1.0）"
+        description="LLM生成的温度参数，控制输出的随机性（0.0-2.0）",
+        ge=0.0, le=2.0
     )
     RESPONSE_TIMEOUT: int = Field(
         default=30,
@@ -43,7 +47,8 @@ class Config(BaseSettings):
     # 触发配置
     TRIGGER_PROBABILITY: float = Field(
         default=0.5,
-        description="AI主动发言的概率（0.0-1.0）"
+        description="AI主动发言的概率（0.0-1.0）",
+        ge=0.0, le=1.0
     )
     TRIGGER_MESSAGE_INTERVAL: int = Field(
         default=5,
@@ -148,8 +153,8 @@ class Config(BaseSettings):
     )
     # 日志相关配置
     LOG_TO_FILE: bool = Field(
-        default=False, 
-        env="LOG_TO_FILE", 
+        default=False,
+        env="LOG_TO_FILE",
         description="是否将日志输出到文件"
     )
     LOG_DIR: Path = Field(
@@ -187,29 +192,24 @@ class Config(BaseSettings):
             yaml_data = {}
         # 使用默认配置初始化
         config = cls()
-        # 使用yaml_data更新配置值
-        if yaml_data:
-            for field in cls.__fields__.values():
-                # 如果yaml_data中没有该字段，则写入默认值和注释
-                if field.name not in yaml_data and field.name not in ["LLM_API_KEY", "LLM_API_BASE"]:
-                    yaml_data[field.name] = field.default
-                    # 将字段描述信息作为注释添加到YAML
-                    if field.field_info.description:
-                        yaml_data[field.name] = f"# {field.field_info.description}\n{yaml_data[field.name]}"
-            # 使用更新后的yaml_data更新配置对象
-            config = config.copy(update=yaml_data)
-            config.update_forward_refs()
-        # 从环境变量加载配置，这将覆盖YAML中的配置
-        env_config = cls.parse_obj(get_driver().config)
+        # 更新环境变量，这将覆盖默认配置
+        env_config = cls.parse_obj(os.environ)
         for field in cls.__fields__:
             if field in env_config.__dict__:
                 setattr(config, field, getattr(env_config, field))
+        # 更新 YAML 配置，这将覆盖默认配置，但会被环境变量覆盖
+        if yaml_data:  # 检查 yaml_data 是否为空
+            config = cls.parse_obj({**config.dict(), **yaml_data})
+        # 处理 LOG_DIR 路径，将其转换为绝对路径
+        config.LOG_DIR = Path(os.path.abspath(os.path.join(
+            os.path.dirname(file_path), str(config.LOG_DIR)))) # 将 LOG_DIR 转换为字符串
         # 将当前配置写回YAML文件（不包括API配置）
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 export_data = {k: v for k,
-                               v in config.dict().items() if k not in ["LLM_API_KEY", "LLM_API_BASE"]}
-                yaml.dump(export_data, f)
+                            v in config.dict().items() if k not in ["LLM_API_KEY", "LLM_API_BASE"]}
+                export_data["LOG_DIR"] = str(export_data["LOG_DIR"]) # 将 LOG_DIR 转换为字符串
+                yaml.dump(export_data, f, default_flow_style=False)  # 使用 default_flow_style=False
         except Exception as e:
             print(f"写入配置文件时出错：{e}")
         return config
@@ -227,4 +227,4 @@ def get_plugin_config() -> Config:
 
 
 # 全局配置对象
-plugin_config = Config.from_yaml()
+plugin_config: Config = Config.from_yaml()  # 使用类型提示

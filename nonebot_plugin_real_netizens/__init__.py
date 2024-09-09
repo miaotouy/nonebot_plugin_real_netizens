@@ -19,7 +19,7 @@ from nonebot.log import logger
 from nonebot.plugin import PluginMetadata
 
 # 从 nonebot_plugin_datastore.db 导入
-from nonebot_plugin_datastore import get_plugin_data
+from nonebot_plugin_datastore import get_plugin_data, PluginData
 from nonebot_plugin_datastore.db import post_db_init
 
 from .config import Config, plugin_config
