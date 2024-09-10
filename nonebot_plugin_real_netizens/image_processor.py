@@ -1,4 +1,3 @@
-#nonebot_plugin_real_netizens\image_processor.py
 import asyncio
 import base64
 import json
@@ -13,7 +12,10 @@ from nonebot.log import logger
 from .config import Config
 from .db.models import Image as DBImage  # 避免与 PIL.Image 冲突
 from .llm_generator import llm_generator
+
 # 依赖注入，避免直接访问全局配置对象
+
+
 class ImageProcessor:
     def __init__(self, config: Config):
         self.image_save_path = config.IMAGE_SAVE_PATH
@@ -21,13 +23,22 @@ class ImageProcessor:
         self.retry_delay = config.RETRY_INTERVAL  # 使用RETRY_INTERVAL作为重试间隔
         self.max_size = 512
         self.fast_llm_model = config.FAST_LLM_MODEL
+        self.supported_formats = ['JPEG', 'PNG',
+                                  'GIF', 'WEBP', 'BMP']  # 支持的图片格式
+
     async def process_image(self, image_path: str, image_hash: str) -> Tuple[bool, Dict]:
         try:
             processed_image = self.preprocess_image(image_path)
+            if processed_image is None:
+                logger.error(f"Failed to preprocess image {image_path}")
+                return False, self._build_error_image_info(image_path, image_hash, "图片预处理失败")
+
             image_description = await self.generate_image_description(processed_image)
             if image_description is None:
-                logger.error(f"Failed to generate image description for {image_path}")
+                logger.error(
+                    f"Failed to generate image description for {image_path}")
                 return False, self._build_error_image_info(image_path, image_hash, "图片描述生成失败")
+
             image_info = {
                 'file_path': image_path,
                 'file_name': os.path.basename(image_path),
@@ -40,6 +51,7 @@ class ImageProcessor:
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}")
             return False, self._build_error_image_info(image_path, image_hash, "图片处理失败，无法生成描述")
+
     def _build_error_image_info(self, image_path: str, image_hash: str, error_message: str) -> Dict:
         return {
             'file_path': image_path,
@@ -49,25 +61,42 @@ class ImageProcessor:
             'is_meme': False,
             'emotion_tag': None
         }
-    def preprocess_image(self, image_path: str) -> Image.Image:
-        with Image.open(image_path) as img:
-            if img.format == 'GIF':
-                img.seek(0)
-            if img.width > self.max_size or img.height > self.max_size:
-                img.thumbnail((self.max_size, self.max_size))
-            if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                background.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
-                img = background
-            jpeg_image = BytesIO()
-            img.save(jpeg_image, format='JPEG')
-            jpeg_image.seek(0)
-            return Image.open(jpeg_image)
+
+    def preprocess_image(self, image_path: str) -> Optional[Image.Image]:
+        try:
+            with Image.open(image_path) as img:
+                if img.format not in self.supported_formats:
+                    logger.warning(f"Unsupported image format: {img.format}")
+                    return None
+
+                if img.format == 'GIF':
+                    img.seek(0)
+
+                if img.width > self.max_size or img.height > self.max_size:
+                    img.thumbnail((self.max_size, self.max_size))
+
+                if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[
+                                     3] if img.mode == 'RGBA' else None)
+                    img = background
+                elif img.mode == 'P':  # 处理 PNG 图片的调色板模式
+                    img = img.convert('RGB')
+
+                jpeg_image = BytesIO()
+                img.save(jpeg_image, format='JPEG')
+                jpeg_image.seek(0)
+                return Image.open(jpeg_image)
+        except Exception as e:
+            logger.error(f"Error preprocessing image: {str(e)}")
+            return None
+
     def calculate_image_hash(self, image: Image.Image) -> str:
         image_hash = str(imagehash.phash(image))
         new_image = DBImage(hash=image_hash)  # 使用 DBImage 进行数据库操作
         new_image.save()
         return image_hash
+
     async def generate_image_description(self, image: Image.Image) -> Dict:
         buffered = BytesIO()
         image.save(buffered, format="JPEG")
@@ -99,12 +128,15 @@ class ImageProcessor:
                 if attempt < self.max_retries - 1:
                     await asyncio.sleep(self.retry_delay)
                 else:
-                    logger.error("All attempts to generate image description failed")
+                    logger.error(
+                        "All attempts to generate image description failed")
                     return {
                         'description': "无法生成图片描述",
                         'is_meme': False,
                         'emotion_tag': None
                     }
+
+
 # 创建一个全局实例，使用依赖注入
 plugin_config = Config.parse_obj(get_driver().config)
 image_processor = ImageProcessor(plugin_config)
