@@ -97,13 +97,14 @@ class ImageProcessor:
         image = image.convert("RGB")  # 将图片转换为 RGB 模式
         image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
+        system_message = "请描述这张图片，判断它是否是表情包，如果是表情包，请给出一个情绪标签。输出格式为JSON，包含'description'(描述文本)、'is_meme'（布尔值）和'emotion_tag'（如果是表情包，则提供情绪标签，否则为null）字段。"
+        user_message = [
+            {"type": "text", "text": "这是一张图片，请描述它。"},
+            {"type": "image_url", "image_url": f"data:image/jpeg;base64,{img_str}"}
+        ]
         messages = [
-            {"role": "system",
-            "content": "请描述这张图片，判断它是否是表情包，如果是表情包，请给出一个情绪标签。输出格式为JSON，包含'description'(描述文本)、'is_meme'（布尔值）和'emotion_tag'（如果是表情包，则提供情绪标签，否则为null）字段。"},
-            {"role": "user", "content": [
-                {"type": "text", "text": "这是一张图片，请描述它。"},
-                {"type": "image_url", "image_url": f"data:image/jpeg;base64,{img_str}"}
-            ]}
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_message}
         ]
         for attempt in range(self.max_retries):
             try:
@@ -113,24 +114,36 @@ class ImageProcessor:
                     temperature=0.7,
                     max_tokens=150
                 )
-                description_data = json.loads(response)
-                return {
-                    'description': description_data['description'],
-                    'is_meme': description_data['is_meme'],
-                    'emotion_tag': description_data['emotion_tag'] if description_data['is_meme'] else None
-                }
-            except (json.JSONDecodeError, KeyError, Exception) as e:
-                logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
+                if response is None:
+                    # API 调用失败，记录错误信息并重试
+                    error_msg = f"Attempt {attempt + 1} failed: API returned None."
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)  # 抛出异常以便触发重试机制
+
+                try:
+                    description_data = json.loads(response)
+                    return {
+                        'description': description_data['description'],
+                        'is_meme': description_data['is_meme'],
+                        'emotion_tag': description_data['emotion_tag'] if description_data['is_meme'] else None
+                    }
+                except (json.JSONDecodeError, KeyError) as e:
+                    # JSON 解析失败，记录错误信息并重试
+                    error_msg = f"Attempt {attempt + 1} failed: JSON decode error: {e}. Response: {response}"
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+            except RuntimeError as e:
+                # 捕获重试异常，等待一段时间后重试
                 if attempt < self.max_retries - 1:
                     await asyncio.sleep(self.retry_delay)
                 else:
-                    logger.error(
-                        "All attempts to generate image description failed")
+                    logger.error(f"All attempts to generate image description failed. Last error: {e}")
                     return {
                         'description': "无法生成图片描述",
                         'is_meme': False,
                         'emotion_tag': None
                     }
+
 
 
 # 创建一个全局实例，使用依赖注入

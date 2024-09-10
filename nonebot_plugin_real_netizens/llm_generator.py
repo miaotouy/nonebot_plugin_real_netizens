@@ -62,14 +62,23 @@ class LLMGenerator:
             async with aiohttp.ClientSession() as session:
                 async with session.post(f"{self.url}/v1/chat/completions",
                                         headers=headers,
-                                        json=payload,
-                                        proxy=self.proxy) as response:
-                    response.raise_for_status()
-                    data = await response.json()
-                    return self.process_response(data)
+                                        json=payload) as response:  # 删除 proxy 参数
+                    logger.debug(f"API request URL: {self.url}/v1/chat/completions")  # 打印请求地址
+                    response_text = await response.text()  # 获取响应体
+                    logger.debug(f"API response text: {response_text}")  # 打印响应体
+                    response.raise_for_status()  # 检查状态码是否为 2xx
+                    try:
+                        data = json.loads(response_text)  # 解析 JSON 数据
+                        logger.debug(f"API response JSON: {data}")  # 打印 JSON 数据
+                        return self.process_response(data)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to decode JSON response: {e}, response text: {response_text}")
+                        return None
         except aiohttp.ClientError as e:
             logger.error(f"API request error: {e}")
             return None
+
+
 
     def process_response(self, data: Dict[str, Any]) -> Optional[str]:
         if data and 'choices' in data and len(data['choices']) > 0:
