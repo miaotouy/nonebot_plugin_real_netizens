@@ -1,5 +1,3 @@
-LLM_PROXY_SERVER: ''
-  # LLM API的代理服务器地址（如果需要）(但是暂未实现该功能)
 LLM_MODEL: gemini-1.5-pro-exp-0827
   # 使用的LLM模型名称
 FAST_LLM_MODEL: gemini-1.5-flash-exp-0827
@@ -65,7 +63,7 @@ RES_PATH: res
 LOG_TO_FILE: false
   # 是否将日志输出到文件
 LOG_DIR: 
-  C:\0111\0111\Tools\nonebot2\mmttyy\mmttyy\plugins\nonebot_plugin_real_netizens\logs
+  C:\0111\0111\Tools\nonebot2\realmm\realmm\plugins\nonebot_plugin_real_netizens\logs
   # 日志文件存储目录
 LOG_FILE_NAME: nonebot_plugin_real_netizens.log
   # 日志文件名

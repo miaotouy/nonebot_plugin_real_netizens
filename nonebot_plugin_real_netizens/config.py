@@ -224,7 +224,7 @@ class Config(BaseSettings):
     def LOG_FILE_PATH(self) -> str:
         return str(self.LOG_DIR / self.LOG_FILE_NAME)
 
-    class ModelConfig:
+    class Config:
         extra = "allow"
 
 

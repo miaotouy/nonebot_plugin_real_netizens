@@ -26,7 +26,6 @@ class LLMGenerator:
     def init(self):
         self.url = plugin_config.LLM_API_BASE
         self.key = plugin_config.LLM_API_KEY
-        self.proxy = plugin_config.LLM_PROXY_SERVER
         self.initialized = True
 
     async def generate_response(self, messages: List[Dict[str, str]], model: str,

@@ -2,6 +2,7 @@ sqlalchemy>=1.4.0
 pydantic>=1.8.0
 PyYAML>=6.0
 aiohttp>=3.8.0
+aiofiles>=23.1.0
 Pillow>=8.0.0
 cachetools>=4.2.0
 imagehash>=4.2.0
