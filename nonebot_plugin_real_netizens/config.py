@@ -29,7 +29,7 @@ class Config(BaseSettings):
         description="用于快速回复的 LLM 模型"
     )
     LLM_MAX_TOKENS: int = Field(
-        default=4096,
+        default=2048,
         description="LLM生成的最大token数"
     )
     LLM_TEMPERATURE: float = Field(
@@ -176,32 +176,43 @@ class Config(BaseSettings):
     )
 
     @classmethod
-    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml") -> "Config":
-        """从 YAML 文件加载配置。"""
+    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml", new_config: dict = None) -> "Config":
+        """从 YAML 文件加载配置，并可选地写入新的配置。"""
         yaml = YAML()
         yaml.indent(mapping=2, sequence=4, offset=2)
+
+        # 使用默认配置初始化
+        config = cls()
+
+        # 尝试加载 YAML 文件
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 yaml_data = yaml.load(f)
+                # 使用 YAML 数据更新配置
+                for key, value in yaml_data.items():
+                    if key in config.__fields__:
+                        setattr(config, key, value)
         except FileNotFoundError:
             logger.warning(f"配置文件 {file_path} 未找到，使用默认配置。")
-            yaml_data = {}
         except Exception as e:
             logger.error(f"解析配置文件 {file_path} 时出错：{e}")
-            yaml_data = {}
-        # 使用默认配置初始化
-        config = cls()
-        # 更新 YAML 配置，这将覆盖默认配置
-        if yaml_data:
-            config = cls.parse_obj({**config.dict(), **yaml_data})
-        # 最后更新环境变量，这将覆盖默认配置和 YAML 配置
+
+        # 使用 new_config 更新配置 (如果提供)
+        if new_config:
+            for key, value in new_config.items():
+                if key in config.__fields__:
+                    setattr(config, key, value)
+
+        # 最后更新环境变量，这将覆盖默认配置、YAML 配置和 new_config
         env_config = cls.parse_obj(os.environ)
-        for field in cls.__fields__:
+        for field in ["LLM_API_KEY", "LLM_API_BASE"]:  # 只覆盖敏感参数
             if field in env_config.__dict__:
                 setattr(config, field, getattr(env_config, field))
+
         # 处理 LOG_DIR 路径，将其转换为绝对路径
         config.LOG_DIR = Path(os.path.abspath(os.path.join(
             os.path.dirname(file_path), str(config.LOG_DIR))))
+
         # 将当前配置写回 YAML 文件（不包括 API 配置）
         try:
             with open(file_path, "w", encoding="utf-8") as f:
@@ -218,7 +229,11 @@ class Config(BaseSettings):
                             f.write(f"  # {field_data['description']}\n")
         except Exception as e:
             print(f"写入配置文件时出错：{e}")
+
         return config
+
+
+
 
     @property
     def LOG_FILE_PATH(self) -> str:
