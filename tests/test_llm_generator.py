@@ -1,3 +1,4 @@
+# tests\test_llm_generator.py
 import asyncio
 import os
 import sys
@@ -39,6 +40,7 @@ async def test_llm_generator():
     )
     # 打印响应内容
     logger.debug(f"LLM response: {response}")
+    print(f"LLM response: {response}")
     # 断言响应不为空
     assert response is not None
 if __name__ == "__main__":

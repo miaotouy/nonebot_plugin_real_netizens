@@ -53,6 +53,7 @@ async def test_generate_image_description():
     assert "description" in gif_description
     assert "is_meme" in gif_description
     assert "emotion_tag" in gif_description
+    print(f"GIF 描述: {gif_description}")  # 添加打印语句
     # 测试 JPG 描述生成
     with Image.open(TEST_JPG_PATH) as jpg_image:
         jpg_description = await image_processor.generate_image_description(jpg_image)
@@ -61,6 +62,7 @@ async def test_generate_image_description():
     assert "description" in jpg_description
     assert "is_meme" in jpg_description
     assert "emotion_tag" in jpg_description
+    print(f"JPG 描述: {jpg_description}")  # 添加打印语句
     # 测试 PNG 描述生成
     with Image.open(TEST_PNG_PATH) as png_image:
         png_description = await image_processor.generate_image_description(png_image)
@@ -69,3 +71,5 @@ async def test_generate_image_description():
     assert "description" in png_description
     assert "is_meme" in png_description
     assert "emotion_tag" in png_description
+    print(f"PNG 描述: {png_description}")  # 添加打印语句
+
