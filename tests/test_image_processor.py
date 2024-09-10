@@ -1,4 +1,4 @@
-#tests/test_image_processor.py
+# tests/test_image_processor.py
 import asyncio
 import os
 from typing import Dict
@@ -16,6 +16,7 @@ TEST_CONFIG = Config(
     MAX_RETRIES=3,
     RETRY_INTERVAL=1.0,
     FAST_LLM_MODEL="gemini-1.5-flash-exp-0827",
+    #  LLM_API_KEY 从环境变量读取，在 test_generate_image_description 函数中处理
 )
 @pytest.mark.asyncio
 async def test_process_image():
@@ -25,19 +26,16 @@ async def test_process_image():
     assert success is True
     assert isinstance(gif_info, Dict)
     assert gif_info["file_path"] == TEST_GIF_PATH
-    assert gif_info["description"] is not None
     # 测试 JPG 图片
     success, jpg_info = await image_processor.process_image(TEST_JPG_PATH, "test_jpg_hash")
     assert success is True
     assert isinstance(jpg_info, Dict)
     assert jpg_info["file_path"] == TEST_JPG_PATH
-    assert jpg_info["description"] is not None
     # 测试 PNG 图片
     success, png_info = await image_processor.process_image(TEST_PNG_PATH, "test_png_hash")
     assert success is True
     assert isinstance(png_info, Dict)
     assert png_info["file_path"] == TEST_PNG_PATH
-    assert png_info["description"] is not None
 @pytest.mark.asyncio
 async def test_preprocess_image():
     image_processor = ImageProcessor(TEST_CONFIG)
@@ -53,3 +51,39 @@ async def test_preprocess_image():
     png_image = await asyncio.to_thread(image_processor.preprocess_image, TEST_PNG_PATH)
     assert png_image is not None
     assert png_image.format == "JPEG"
+@pytest.mark.asyncio
+async def test_generate_image_description():
+    # 从环境变量读取 API 密钥
+    api_key = os.getenv("LLM_API_KEY")
+    if not api_key:
+        pytest.skip("LLM_API_KEY environment variable not set, skipping test")
+    # 使用实际的 API 密钥创建配置
+    config_with_api_key = Config(
+        **TEST_CONFIG.dict(),  # 复制 TEST_CONFIG 中的其他配置
+        LLM_API_KEY=api_key
+    )
+    image_processor = ImageProcessor(config_with_api_key)
+    # 测试 GIF 描述生成
+    with Image.open(TEST_GIF_PATH) as gif_image:
+        gif_description = await image_processor.generate_image_description(gif_image)
+    assert gif_description is not None
+    assert isinstance(gif_description, dict)
+    assert "description" in gif_description
+    assert "is_meme" in gif_description
+    assert "emotion_tag" in gif_description
+    # 测试 JPG 描述生成
+    with Image.open(TEST_JPG_PATH) as jpg_image:
+        jpg_description = await image_processor.generate_image_description(jpg_image)
+    assert jpg_description is not None
+    assert isinstance(jpg_description, dict)
+    assert "description" in jpg_description
+    assert "is_meme" in jpg_description
+    assert "emotion_tag" in jpg_description
+    # 测试 PNG 描述生成
+    with Image.open(TEST_PNG_PATH) as png_image:
+        png_description = await image_processor.generate_image_description(png_image)
+    assert png_description is not None
+    assert isinstance(png_description, dict)
+    assert "description" in png_description
+    assert "is_meme" in png_description
+    assert "emotion_tag" in png_description

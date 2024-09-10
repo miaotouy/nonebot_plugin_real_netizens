@@ -40,7 +40,9 @@ check-deps = "python tests/check_dependencies.py"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 [tool.nonebot]
-plugins = ["nonebot_plugin_real_netizens"]
+plugins = [
+    "nonebot_plugin_real_netizens"
+]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
@@ -71,5 +73,4 @@ ensure_newline_before_comments = true
 line_length = 88
 [tool.pyright]
 reportGeneralTypeIssues = false
-[pytest]
-asyncio_default_fixture_loop_scope = function
+
