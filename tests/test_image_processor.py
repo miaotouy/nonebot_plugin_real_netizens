@@ -1,26 +1,17 @@
-# tests/test_image_processor.py
+#tests/test_image_processor.py
 import asyncio
 import os
 from typing import Dict
 import pytest
 from PIL import Image
-from nonebot_plugin_real_netizens.image_processor import ImageProcessor
-from nonebot_plugin_real_netizens.config import Config
+from nonebot_plugin_real_netizens.image_processor import ImageProcessor, plugin_config  # 导入 plugin_config
 # 测试图片路径
 TEST_GIF_PATH = os.path.join(os.path.dirname(__file__), "giftest.gif")
 TEST_JPG_PATH = os.path.join(os.path.dirname(__file__), "jpgtest.jpg")
 TEST_PNG_PATH = os.path.join(os.path.dirname(__file__), "pngtest.png")
-# 模拟配置
-TEST_CONFIG = Config(
-    IMAGE_SAVE_PATH="tests/test_images",
-    MAX_RETRIES=3,
-    RETRY_INTERVAL=1.0,
-    FAST_LLM_MODEL="gemini-1.5-flash-exp-0827",
-    #  LLM_API_KEY 从环境变量读取，在 test_generate_image_description 函数中处理
-)
 @pytest.mark.asyncio
 async def test_process_image():
-    image_processor = ImageProcessor(TEST_CONFIG)
+    image_processor = ImageProcessor(plugin_config)
     # 测试 GIF 图片
     success, gif_info = await image_processor.process_image(TEST_GIF_PATH, "test_gif_hash")
     assert success is True
@@ -38,7 +29,7 @@ async def test_process_image():
     assert png_info["file_path"] == TEST_PNG_PATH
 @pytest.mark.asyncio
 async def test_preprocess_image():
-    image_processor = ImageProcessor(TEST_CONFIG)
+    image_processor = ImageProcessor(plugin_config)
     # 测试 GIF 预处理
     gif_image = await asyncio.to_thread(image_processor.preprocess_image, TEST_GIF_PATH)
     assert gif_image is not None
@@ -53,16 +44,7 @@ async def test_preprocess_image():
     assert png_image.format == "JPEG"
 @pytest.mark.asyncio
 async def test_generate_image_description():
-    # 从环境变量读取 API 密钥
-    api_key = os.getenv("LLM_API_KEY")
-    if not api_key:
-        pytest.skip("LLM_API_KEY environment variable not set, skipping test")
-    # 使用实际的 API 密钥创建配置
-    config_with_api_key = Config(
-        **TEST_CONFIG.dict(),  # 复制 TEST_CONFIG 中的其他配置
-        LLM_API_KEY=api_key
-    )
-    image_processor = ImageProcessor(config_with_api_key)
+    image_processor = ImageProcessor(plugin_config)
     # 测试 GIF 描述生成
     with Image.open(TEST_GIF_PATH) as gif_image:
         gif_description = await image_processor.generate_image_description(gif_image)

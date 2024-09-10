@@ -182,42 +182,41 @@ class Config(BaseSettings):
     @classmethod
     def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml") -> "Config":
         """从 YAML 文件加载配置。"""
-        yaml = YAML()  # 使用 ruamel.yaml 的 YAML 对象
-        yaml.indent(mapping=2, sequence=4, offset=2)  # 设置缩进
+        yaml = YAML()
+        yaml.indent(mapping=2, sequence=4, offset=2)
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 yaml_data = yaml.load(f)
         except FileNotFoundError:
             logger.warning(f"配置文件 {file_path} 未找到，使用默认配置。")
             yaml_data = {}
-        except Exception as e:  # 捕获所有异常
+        except Exception as e:
             logger.error(f"解析配置文件 {file_path} 时出错：{e}")
             yaml_data = {}
         # 使用默认配置初始化
         config = cls()
-        # 更新环境变量，这将覆盖默认配置
+        # 更新 YAML 配置，这将覆盖默认配置
+        if yaml_data:
+            config = cls.parse_obj({**config.dict(), **yaml_data})
+        # 最后更新环境变量，这将覆盖默认配置和 YAML 配置
         env_config = cls.parse_obj(os.environ)
         for field in cls.__fields__:
             if field in env_config.__dict__:
                 setattr(config, field, getattr(env_config, field))
-        # 更新 YAML 配置，这将覆盖默认配置，但会被环境变量覆盖
-        if yaml_data:  # 检查 yaml_data 是否为空
-            config = cls.parse_obj({**config.dict(), ** yaml_data})
         # 处理 LOG_DIR 路径，将其转换为绝对路径
         config.LOG_DIR = Path(os.path.abspath(os.path.join(
             os.path.dirname(file_path), str(config.LOG_DIR))))
-        # 将当前配置写回YAML文件（不包括API配置）
+        # 将当前配置写回 YAML 文件（不包括 API 配置）
         try:
             with open(file_path, "w", encoding="utf-8") as f:
-                schema = cls.schema()  # 获取完整的模型 schema
+                schema = cls.schema()
                 for field_name, field_data in schema["properties"].items():
                     if field_name not in ["LLM_API_KEY", "LLM_API_BASE"]:
                         value = getattr(config, field_name)
-                        # 将 LOG_DIR 转换为字符串
                         if field_name == "LOG_DIR":
                             value = str(value)
-                        yaml.dump({field_name: value}, f)  # 写入值
-                        # 添加注释
+                        yaml.dump({field_name: value}, f)
+                        # 向yaml添加注释
                         if "description" in field_data:
                             f.seek(0, os.SEEK_END)
                             f.write(f"  # {field_data['description']}\n")
