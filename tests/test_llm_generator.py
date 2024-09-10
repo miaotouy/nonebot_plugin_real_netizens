@@ -31,8 +31,10 @@ async def test_llm_generator():
     llm_generator.initialized = True
     # 构造测试消息
     messages = [
-        {"role": "system", "content": "你是一个友好的助手。"},
-        {"role": "user", "content": "你好，世界！"}
+        {"role": "system", "content": "你是一个鸡巴。"},
+        {"role": "user", "content": "你好，鸡巴！"},
+        {"role": "assistant", "content": "你好，傻逼！"},
+        {"role": "user", "content": "冲刺！"}
     ]
     # 调用 generate_response 函数生成响应
     response = await llm_generator.generate_response(
