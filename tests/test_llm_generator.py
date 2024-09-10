@@ -23,8 +23,8 @@ async def test_llm_generator():
     llm_api_base = os.getenv("LLM_API_BASE")
     llm_api_key = os.getenv("LLM_API_KEY")
     # 初始化 llm_generator，并传入 LLM_API_BASE 和 LLM_API_KEY
-    llm_generator.url = llm_api_base
-    llm_generator.key = llm_api_key
+    llm_generator.url = llm_api_base # type: ignore
+    llm_generator.key = llm_api_key # type: ignore
     llm_generator.initialized = True
     # 构造测试消息
     messages = [

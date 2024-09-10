@@ -19,10 +19,6 @@ class Config(BaseSettings):
         default="", env="LLM_API_KEY",
         description="LLM API的访问密钥"
     )
-    LLM_PROXY_SERVER: str = Field(
-        default="", env="LLM_PROXY_SERVER",
-        description="LLM API的代理服务器地址（如果需要）(但是暂未实现该功能)"
-    )
     # LLM 模型配置
     LLM_MODEL: str = Field(
         default="gemini-1.5-pro-exp-0827",
@@ -228,7 +224,7 @@ class Config(BaseSettings):
     def LOG_FILE_PATH(self) -> str:
         return str(self.LOG_DIR / self.LOG_FILE_NAME)
 
-    class Config:
+    class ModelConfig:
         extra = "allow"
 
 

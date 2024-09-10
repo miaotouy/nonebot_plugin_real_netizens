@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 from nonebot import get_driver
 from nonebot_plugin_real_netizens.image_processor import ImageProcessor
+from nonebot_plugin_real_netizens.config import Config  # 导入插件的 Config
 
 # 测试图片路径，使用绝对路径
 TEST_GIF_PATH = os.path.join(os.path.dirname(__file__), "giftest.gif")
@@ -22,7 +23,7 @@ async def test_process_image():
     # 获取 NoneBot 的配置
     driver = get_driver()
     config = driver.config
-    image_processor = ImageProcessor(config)  # 不再需要传递 image_save_path
+    image_processor = ImageProcessor(config)
 
     # 测试 GIF 图片
     success, gif_info = await image_processor.process_image(TEST_GIF_PATH,
@@ -51,7 +52,7 @@ async def test_preprocess_image():
     # 获取 NoneBot 的配置
     driver = get_driver()
     config = driver.config
-    image_processor = ImageProcessor(config)  # 不再需要传递 image_save_path
+    image_processor = ImageProcessor(config)
 
     # 测试 GIF 预处理
     gif_image = await asyncio.to_thread(image_processor.preprocess_image,
@@ -77,7 +78,7 @@ async def test_generate_image_description():
     # 获取 NoneBot 的配置
     driver = get_driver()
     config = driver.config
-    image_processor = ImageProcessor(config)  # 不再需要传递 image_save_path
+    image_processor = ImageProcessor(config)
 
     # 测试 GIF 描述生成
     with Image.open(TEST_GIF_PATH) as gif_image:
@@ -92,7 +93,7 @@ async def test_generate_image_description():
         print(f"GIF 描述生成错误: {gif_description['error']}")
         print(f"状态码: {gif_description['status_code']}")
     else:
-        print(f"GIF 描述: {gif_description}")  # 添加打印语句
+        print(f"GIF 描述: {gif_description}")
 
     # 测试 JPG 描述生成
     with Image.open(TEST_JPG_PATH) as jpg_image:
@@ -107,7 +108,7 @@ async def test_generate_image_description():
         print(f"JPG 描述生成错误: {jpg_description['error']}")
         print(f"状态码: {jpg_description['status_code']}")
     else:
-        print(f"JPG 描述: {jpg_description}")  # 添加打印语句
+        print(f"JPG 描述: {jpg_description}")
 
     # 测试 PNG 描述生成
     with Image.open(TEST_PNG_PATH) as png_image:
@@ -122,5 +123,5 @@ async def test_generate_image_description():
         print(f"PNG 描述生成错误: {png_description['error']}")
         print(f"状态码: {png_description['status_code']}")
     else:
-        print(f"PNG 描述: {png_description}")  # 添加打印语句
+        print(f"PNG 描述: {png_description}")
 

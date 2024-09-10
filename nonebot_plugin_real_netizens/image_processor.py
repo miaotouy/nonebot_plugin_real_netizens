@@ -4,7 +4,7 @@ import json
 import os
 from io import BytesIO
 from typing import Dict, Optional, Tuple
-import imagehash  # type: ignore
+import imagehash
 from PIL import Image
 from nonebot import get_driver
 from nonebot.adapters.onebot.v11 import MessageSegment
@@ -16,7 +16,7 @@ from .llm_generator import llm_generator
 class ImageProcessor:
     def __init__(self, config: Config):
         # 获取插件的配置对象
-        plugin_config = Config.parse_obj(get_driver().config)
+        plugin_config = Config.parse_obj(config)  # 使用传入的 config 参数
 
         # 使用插件的配置项初始化属性
         self.max_retries = plugin_config.MAX_RETRIES
@@ -112,25 +112,36 @@ class ImageProcessor:
                     if response is None:
                         error_msg = f"Attempt {attempt + 1} failed: API returned None."
                         logger.error(error_msg)
-                        return self._build_error_response(error_msg, None)
+                        if attempt < self.max_retries - 1:
+                            await asyncio.sleep(self.retry_delay)
+                            continue  # 继续尝试
+                        else:
+                            return self._build_error_response(error_msg, None)  # 返回错误信息字典
                     try:
                         description_data = json.loads(response)
                         if not all(key in description_data for key in ['description', 'is_meme', 'emotion_tag']):
                             raise KeyError("Missing required fields in JSON response")
-                        return description_data
+                        return description_data  # 返回解析后的 JSON 数据
                     except (json.JSONDecodeError, KeyError) as e:
                         error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {response}"
                         logger.error(error_msg)
-                        return self._build_error_response(error_msg, 200)
+                        if attempt < self.max_retries - 1:
+                            await asyncio.sleep(self.retry_delay)
+                            continue  # 继续尝试
+                        else:
+                            return self._build_error_response(error_msg, 200)  # 返回错误信息字典
                 except RuntimeError as e:
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
+                        continue  # 继续尝试
                     else:
                         logger.error(f"All attempts to generate image description failed. Last error: {e}")
-                        return self._build_error_response(str(e), None)
+                        return self._build_error_response(str(e), None)  # 返回错误信息字典
         except Exception as e:
             logger.error(f"Error in generate_image_description: {e}")
-            return self._build_error_response(str(e), None)
+            return self._build_error_response(str(e), None)  # 返回错误信息字典
+        # 如果所有尝试都失败了，返回一个默认的错误信息字典
+        return self._build_error_response("All attempts to generate image description failed.", None)
 
     async def encode_image_to_base64(self, image: Image.Image) -> str:
         buffered = BytesIO()
