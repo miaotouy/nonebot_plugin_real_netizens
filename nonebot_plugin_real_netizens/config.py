@@ -7,7 +7,6 @@ from nonebot import get_driver
 from nonebot.log import logger
 from pydantic import BaseSettings, Field
 from ruamel.yaml import YAML
-import ruamel.yaml
 
 
 class Config(BaseSettings):
