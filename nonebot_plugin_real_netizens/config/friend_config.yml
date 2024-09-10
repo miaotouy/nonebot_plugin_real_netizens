@@ -62,8 +62,7 @@ RES_PATH: res
   # 资源文件根目录路径
 LOG_TO_FILE: false
   # 是否将日志输出到文件
-LOG_DIR: 
-  C:\0111\0111\Tools\nonebot2\realmm\realmm\plugins\nonebot_plugin_real_netizens\logs
+LOG_DIR: E:\rc20\ToolsRC20\nonebot2\realai\src\plugins\nonebot_plugin_real_netizens\logs
   # 日志文件存储目录
 LOG_FILE_NAME: nonebot_plugin_real_netizens.log
   # 日志文件名

@@ -31,15 +31,15 @@ async def test_llm_generator():
     llm_generator.initialized = True
     # 构造测试消息
     messages = [
-        {"role": "system", "content": "你是一个鸡巴。"},
-        {"role": "user", "content": "你好，鸡巴！"},
-        {"role": "assistant", "content": "你好，傻逼！"},
-        {"role": "user", "content": "冲刺！"}
+        {"role": "system", "content": "你是一个歌姬。"},
+        {"role": "user", "content": "你好，洛天依！"},
+        {"role": "assistant", "content": "操你妈我是初音未来！"},
+        {"role": "user", "content": "那操你！"}
     ]
     # 调用 generate_response 函数生成响应
     response = await llm_generator.generate_response(
         messages=messages,
-        model="gemini-1.5-flash-8b-exp-0827",  # 使用您配置的模型
+        model="gemini-1.5-flash-exp-0827",  # 使用您配置的模型
         temperature=0.7,
         max_tokens=100
     )
