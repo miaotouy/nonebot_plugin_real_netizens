@@ -12,6 +12,8 @@ from nonebot.log import logger
 from .config import Config
 from .db.models import Image as DBImage  # 避免与 PIL.Image 冲突
 from .llm_generator import llm_generator
+from vertexai.generative_models import GenerationConfig
+from vertexai.language_models import TextGenerationResponse
 
 class ImageProcessor:
     def __init__(self, config: Config):
@@ -93,11 +95,23 @@ class ImageProcessor:
     async def generate_image_description(self, image: Image.Image) -> Dict:
         try:
             image_base64 = await self.encode_image_to_base64(image)
-            system_message = "请描述这张图片,判断它是否是表情包,如果是表情包,请给出一个情绪标签。输出格式为JSON,包含'description'(描述文本)、'is_meme'（布尔值）和'emotion_tag'（如果是表情包,则提供情绪标签,否则为null）字段。"
+            system_message = "请描述这张图片,判断它是否是表情包,如果是表情包,请给出一个或多个情绪标签。"
+
+            # 定义响应架构
+            response_schema = {
+                "type": "object",
+                "properties": {
+                    "description": {"type": "string"},
+                    "is_meme": {"type": "boolean"},
+                    "emotion_tag": {"type": "string", "nullable": True}
+                },
+                "required": ["description", "is_meme", "emotion_tag"]
+            }
+
             messages = [
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": [
-                    {"type": "text", "text": "这是一张图片,请描述它并按照格式输出。"},
+                    {"type": "text", "text": "这是一张图片,请描述它。"},
                     {"type": "image_url", "image_url": {"url": image_base64}}
                 ]}
             ]
@@ -107,35 +121,69 @@ class ImageProcessor:
                         messages=messages,
                         model=self.fast_llm_model,
                         temperature=0.7,
-                        max_tokens=150
+                        max_tokens=150,
+                        # 使用 GenerationConfig
+                        generation_config=GenerationConfig(
+                            response_mime_type="application/json",
+                            response_schema=response_schema
+                        )
                     )
+
                     if response is None:
                         error_msg = f"Attempt {attempt + 1} failed: API returned None."
                         logger.error(error_msg)
+                        print(error_msg)
                         if attempt < self.max_retries - 1:
                             await asyncio.sleep(self.retry_delay)
                             continue  # 继续尝试
                         else:
                             return self._build_error_response(error_msg, None)  # 返回错误信息字典
-                    try:
-                        description_data = json.loads(response)
-                        if not all(key in description_data for key in ['description', 'is_meme', 'emotion_tag']):
-                            raise KeyError("Missing required fields in JSON response")
-                        return description_data  # 返回解析后的 JSON 数据
-                    except (json.JSONDecodeError, KeyError) as e:
-                        error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {response}"
+                    elif isinstance(response, TextGenerationResponse):  # 判断是否是 TextGenerationResponse 对象
+                        if response.is_blocked:  # 检查是否被屏蔽
+                            error_msg = f"Attempt {attempt + 1} failed: Request blocked due to safety reasons. Errors: {response.errors}"
+                            logger.error(error_msg)
+                            print(error_msg)
+                            # ... (处理被屏蔽的情况，例如记录错误或重试)
+                            if attempt < self.max_retries - 1:
+                                await asyncio.sleep(self.retry_delay)
+                                continue  # 继续尝试
+                            else:
+                                return self._build_error_response(error_msg, None)  # 返回错误信息字典
+
+                        else:
+                            try:
+                                description_data = json.loads(response.text)  # 解析 JSON 数据
+                                if not all(key in description_data for key in
+                                        ['description', 'is_meme', 'emotion_tag']):
+                                    raise KeyError("Missing required fields in JSON response")
+                                return description_data  # 返回解析后的 JSON 数据
+                            except (json.JSONDecodeError, KeyError) as e:
+                                error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {response.text}"
+                                logger.error(error_msg)
+                                print(error_msg)
+                                if attempt < self.max_retries - 1:
+                                    await asyncio.sleep(self.retry_delay)
+                                    continue  # 继续尝试
+                                else:
+                                    return self._build_error_response(error_msg, 200)  # 返回错误信息字典
+                    else:
+                        # 处理非 TextGenerationResponse 对象的情况，例如旧模型的响应
+                        error_msg = f"Attempt {attempt + 1} failed: Unexpected response type: {type(response)}"
                         logger.error(error_msg)
+                        print(error_msg)
                         if attempt < self.max_retries - 1:
                             await asyncio.sleep(self.retry_delay)
                             continue  # 继续尝试
                         else:
-                            return self._build_error_response(error_msg, 200)  # 返回错误信息字典
+                            return self._build_error_response(error_msg, None)  # 返回错误信息字典
+
                 except RuntimeError as e:
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue  # 继续尝试
                     else:
                         logger.error(f"All attempts to generate image description failed. Last error: {e}")
+                        print(error_msg)
                         return self._build_error_response(str(e), None)  # 返回错误信息字典
         except Exception as e:
             logger.error(f"Error in generate_image_description: {e}")
