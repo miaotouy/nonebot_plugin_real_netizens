@@ -15,16 +15,17 @@ from .llm_generator import llm_generator
 from vertexai.generative_models import GenerationConfig
 from vertexai.language_models import TextGenerationResponse
 
+
 class ImageProcessor:
     def __init__(self, config: Config):
         # 获取插件的配置对象
-        plugin_config = Config.parse_obj(config)  # 使用传入的 config 参数
+        self.config = config
 
         # 使用插件的配置项初始化属性
-        self.max_retries = plugin_config.MAX_RETRIES
-        self.retry_delay = plugin_config.RETRY_INTERVAL
-        self.max_size = 2
-        self.fast_llm_model = plugin_config.FAST_LLM_MODEL
+        self.max_retries = self.config.MAX_RETRIES
+        self.retry_delay = self.config.RETRY_INTERVAL
+        self.max_size = self.config.MAX_IMAGE_SIZE  # 使用配置项
+        self.fast_llm_model = self.config.FAST_LLM_MODEL
         self.supported_formats = ['JPEG', 'PNG', 'GIF', 'WEBP', 'BMP']
 
     async def process_image(self, image_path: str, image_hash: str) -> Tuple[bool, Dict]:
@@ -34,9 +35,10 @@ class ImageProcessor:
                 logger.error(f"Failed to preprocess image {image_path}")
                 return False, self._build_error_image_info(image_path, image_hash, "图片预处理失败")
             image_description = await self.generate_image_description(processed_image)
-            if image_description is None:
+            if image_description is None or 'error' in image_description:
                 logger.error(
-                    f"Failed to generate image description for {image_path}")
+                    f"Failed to generate image description for {image_path}: {image_description.get('error')}"
+                )
                 return False, self._build_error_image_info(image_path, image_hash, "图片描述生成失败")
             image_info = {
                 'file_path': image_path,
@@ -105,14 +107,15 @@ class ImageProcessor:
                     "is_meme": {"type": "boolean"},
                     "emotion_tag": {"type": "string", "nullable": True}
                 },
-                "required": ["description", "is_meme", "emotion_tag"]
+                "required": ["description", "is_meme"]  # emotion_tag 可以为空
             }
 
             messages = [
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": [
                     {"type": "text", "text": "这是一张图片,请描述它。"},
-                    {"type": "image_url", "image_url": {"url": image_base64}}
+                    {"type": "image_url", "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_base64}"}}
                 ]}
             ]
             for attempt in range(self.max_retries):
@@ -122,7 +125,6 @@ class ImageProcessor:
                         model=self.fast_llm_model,
                         temperature=0.7,
                         max_tokens=150,
-                        # 使用 GenerationConfig
                         generation_config=GenerationConfig(
                             response_mime_type="application/json",
                             response_schema=response_schema
@@ -132,63 +134,57 @@ class ImageProcessor:
                     if response is None:
                         error_msg = f"Attempt {attempt + 1} failed: API returned None."
                         logger.error(error_msg)
-                        print(error_msg)
                         if attempt < self.max_retries - 1:
                             await asyncio.sleep(self.retry_delay)
-                            continue  # 继续尝试
+                            continue
                         else:
-                            return self._build_error_response(error_msg, None)  # 返回错误信息字典
-                    elif isinstance(response, TextGenerationResponse):  # 判断是否是 TextGenerationResponse 对象
-                        if response.is_blocked:  # 检查是否被屏蔽
+                            return self._build_error_response(error_msg, None)
+                    elif isinstance(response, TextGenerationResponse):
+                        if response.is_blocked:
                             error_msg = f"Attempt {attempt + 1} failed: Request blocked due to safety reasons. Errors: {response.errors}"
                             logger.error(error_msg)
-                            print(error_msg)
-                            # ... (处理被屏蔽的情况，例如记录错误或重试)
                             if attempt < self.max_retries - 1:
                                 await asyncio.sleep(self.retry_delay)
-                                continue  # 继续尝试
+                                continue
                             else:
-                                return self._build_error_response(error_msg, None)  # 返回错误信息字典
+                                return self._build_error_response(error_msg, None)
 
                         else:
                             try:
-                                description_data = json.loads(response.text)  # 解析 JSON 数据
+                                description_data = json.loads(response.text)
                                 if not all(key in description_data for key in
-                                        ['description', 'is_meme', 'emotion_tag']):
-                                    raise KeyError("Missing required fields in JSON response")
-                                return description_data  # 返回解析后的 JSON 数据
+                                           ['description', 'is_meme']):  # 只检查必要字段
+                                    raise KeyError(
+                                        "Missing required fields in JSON response")
+                                return description_data
                             except (json.JSONDecodeError, KeyError) as e:
                                 error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {response.text}"
                                 logger.error(error_msg)
-                                print(error_msg)
                                 if attempt < self.max_retries - 1:
                                     await asyncio.sleep(self.retry_delay)
-                                    continue  # 继续尝试
+                                    continue
                                 else:
-                                    return self._build_error_response(error_msg, 200)  # 返回错误信息字典
+                                    return self._build_error_response(error_msg, 200)
                     else:
-                        # 处理非 TextGenerationResponse 对象的情况，例如旧模型的响应
                         error_msg = f"Attempt {attempt + 1} failed: Unexpected response type: {type(response)}"
                         logger.error(error_msg)
-                        print(error_msg)
                         if attempt < self.max_retries - 1:
                             await asyncio.sleep(self.retry_delay)
-                            continue  # 继续尝试
+                            continue
                         else:
-                            return self._build_error_response(error_msg, None)  # 返回错误信息字典
+                            return self._build_error_response(error_msg, None)
 
                 except RuntimeError as e:
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
-                        continue  # 继续尝试
+                        continue
                     else:
-                        logger.error(f"All attempts to generate image description failed. Last error: {e}")
-                        print(error_msg)
-                        return self._build_error_response(str(e), None)  # 返回错误信息字典
+                        logger.error(
+                            f"All attempts to generate image description failed. Last error: {e}")
+                        return self._build_error_response(str(e), None)
         except Exception as e:
             logger.error(f"Error in generate_image_description: {e}")
-            return self._build_error_response(str(e), None)  # 返回错误信息字典
-        # 如果所有尝试都失败了，返回一个默认的错误信息字典
+            return self._build_error_response(str(e), None)
         return self._build_error_response("All attempts to generate image description failed.", None)
 
     async def encode_image_to_base64(self, image: Image.Image) -> str:
@@ -206,6 +202,7 @@ class ImageProcessor:
             'error': error_msg,
             'status_code': status_code
         }
+
 
 # 创建一个全局实例,使用依赖注入
 plugin_config = Config.parse_obj(get_driver().config)
