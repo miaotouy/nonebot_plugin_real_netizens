@@ -10,7 +10,9 @@ from ruamel.yaml import YAML
 
 
 class Config(BaseSettings):
-    # API 配置
+    """插件配置类"""
+
+    # --- API 配置 ---
     LLM_API_BASE: str = Field(
         default="https://api.openai.com", env="LLM_API_BASE",
         description="LLM API的基础URL"
@@ -19,7 +21,20 @@ class Config(BaseSettings):
         default="", env="LLM_API_KEY",
         description="LLM API的访问密钥"
     )
-    # LLM 模型配置
+    MAX_RETRIES: int = Field(
+        default=3, env="MAX_RETRIES",
+        description="API调用最大重试次数"
+    )
+    RETRY_INTERVAL: float = Field(
+        default=1.0, env="RETRY_INTERVAL",
+        description="API调用重试间隔（秒）"
+    )
+    RESPONSE_TIMEOUT: int = Field(
+        default=30,
+        description="API调用超时时间（秒）"
+    )
+
+    # --- LLM 模型配置 ---
     LLM_MODEL: str = Field(
         default="gemini-1.5-pro-exp-0827",
         description="使用的LLM模型名称"
@@ -37,11 +52,12 @@ class Config(BaseSettings):
         description="LLM生成的温度参数，控制输出的随机性（0.0-2.0）",
         ge=0.0, le=2.0
     )
-    RESPONSE_TIMEOUT: int = Field(
-        default=30,
-        description="API调用超时时间（秒）"
+    MAX_IMAGE_SIZE: int = Field(
+        default=512,
+        description="发送给 LLM 的图片最大尺寸（像素）, 建议不超过 1024"
     )
-    # 触发配置
+
+    # --- 触发配置 ---
     TRIGGER_PROBABILITY: float = Field(
         default=0.5,
         description="AI主动发言的概率（0.0-1.0）",
@@ -55,7 +71,12 @@ class Config(BaseSettings):
         default=30,
         description="保留的上下文消息数量"
     )
-    # 用户和群组配置
+    CHAT_HISTORY_LIMIT: int = Field(
+        default=3000,
+        description="聊天历史记录最大保存条数"
+    )
+
+    # --- 用户和群组配置 ---
     SUPERUSERS: List[str] = Field(
         default_factory=list, env="SUPERUSERS",
         description="超级用户的QQ号列表"
@@ -64,7 +85,12 @@ class Config(BaseSettings):
         default_factory=list, env="ENABLED_GROUPS",
         description="启用插件的群号列表"
     )
-    # 资源目录配置
+
+    # --- 资源目录配置 ---
+    RES_PATH: str = Field(
+        default="res",
+        description="资源文件根目录路径"
+    )
     CHARACTER_CARDS_DIR: str = Field(
         default="res/character",
         description="角色卡片目录路径"
@@ -81,7 +107,8 @@ class Config(BaseSettings):
         default="data/images",
         description="图片保存路径"
     )
-    # 默认资源配置
+
+    # --- 默认资源配置 ---
     DEFAULT_WORLDBOOK: str = Field(
         default="世界书条目示例", description="默认世界书名称"
     )
@@ -91,38 +118,24 @@ class Config(BaseSettings):
     DEFAULT_CHARACTER_ID: str = Field(
         default="nolll", description="默认角色ID"
     )
-    # 定时任务开关
+
+    # --- 定时任务配置 ---
     ENABLE_SCHEDULER: bool = Field(
         default=True, description="是否启用定时任务"
-    )
-    # 其他配置项
-    INACTIVE_THRESHOLD: int = Field(
-        default=3600,
-        description="群聊不活跃阈值（秒）"
     )
     MORNING_GREETING_TIME: str = Field(
         default="08:30",
         description="早安问候时间"
     )
+
+    # --- 其他配置 ---
     DATABASE_URL: str = Field(
         default="sqlite:///friend_bot.db", env="DATABASE_URL",
         description="数据库连接URL"
     )
-    LOG_LEVEL: str = Field(
-        default="INFO", env="LOG_LEVEL",
-        description="日志级别"
-    )
-    CHAT_HISTORY_LIMIT: int = Field(
-        default=3000,
-        description="聊天历史记录最大保存条数"
-    )
-    MAX_RETRIES: int = Field(
-        default=3, env="MAX_RETRIES",
-        description="API调用最大重试次数"
-    )
-    RETRY_INTERVAL: float = Field(
-        default=1.0, env="RETRY_INTERVAL",
-        description="API调用重试间隔（秒）"
+    INACTIVE_THRESHOLD: int = Field(
+        default=3600,
+        description="群聊不活跃阈值（秒）"
     )
     CACHE_EXPIRY_TIME: int = Field(
         default=1800,
@@ -144,11 +157,12 @@ class Config(BaseSettings):
         default=False, env="DEBUG_MODE",
         description="是否启用调试模式"
     )
-    RES_PATH: str = Field(
-        default="res",
-        description="资源文件根目录路径"
+
+    # --- 日志相关配置 ---
+    LOG_LEVEL: str = Field(
+        default="INFO", env="LOG_LEVEL",
+        description="日志级别"
     )
-    # 日志相关配置
     LOG_TO_FILE: bool = Field(
         default=False,
         env="LOG_TO_FILE",
