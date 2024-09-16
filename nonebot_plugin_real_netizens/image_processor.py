@@ -24,8 +24,8 @@ class ImageProcessor:
         # 使用插件的配置项初始化属性
         self.max_retries = self.config.MAX_RETRIES
         self.retry_delay = self.config.RETRY_INTERVAL
-        self.max_size = self.config.MAX_IMAGE_SIZE  # 使用配置项
-        self.fast_llm_model = self.config.FAST_LLM_MODEL
+        self.max_size = self.config.MAX_IMAGE_SIZE
+        self.vl_llm_model = self.config.VL_LLM_MODEL
         self.supported_formats = ['JPEG', 'PNG', 'GIF', 'WEBP', 'BMP']
 
     async def process_image(self, image_path: str, image_hash: str) -> Tuple[bool, Dict]:
@@ -97,38 +97,37 @@ class ImageProcessor:
     async def generate_image_description(self, image: Image.Image) -> Dict:
         try:
             image_base64 = await self.encode_image_to_base64(image)
-            system_message = "请描述这张图片,判断它是否是表情包,如果是表情包,请给出一个或多个情绪标签。"
-
-            # 定义响应架构
-            response_schema = {
-                "type": "object",
-                "properties": {
-                    "description": {"type": "string"},
-                    "is_meme": {"type": "boolean"},
-                    "emotion_tag": {"type": "string", "nullable": True}
-                },
-                "required": ["description", "is_meme"]  # emotion_tag 可以为空
-            }
+            system_message = (
+                "请详细描述这张图片。\n"
+                "然后判断它是否是表情包,如果是表情包,请给出一个或多个情绪标签。\n"
+                "使用json格式输出:\n"
+                "{\n"
+                '  "description": {"type": "string"},\n'
+                '  "is_meme": {"type": "boolean"},\n'
+                '  "emotion_tag": {"type": "string", "nullable": true}\n'
+                "}"
+            )
 
             messages = [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "这是一张图片,请描述它。"},
-                    {"type": "image_url", "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_base64}"}}
-                ]}
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "这是一张图片,请描述它。"},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                        },
+                    ],
+                }
             ]
+
             for attempt in range(self.max_retries):
                 try:
                     response = await llm_generator.generate_response(
                         messages=messages,
-                        model=self.fast_llm_model,
+                        model=self.vl_llm_model,
                         temperature=0.7,
                         max_tokens=150,
-                        generation_config=GenerationConfig(
-                            response_mime_type="application/json",
-                            response_schema=response_schema
-                        )
                     )
 
                     if response is None:
@@ -139,32 +138,32 @@ class ImageProcessor:
                             continue
                         else:
                             return self._build_error_response(error_msg, None)
-                    elif isinstance(response, TextGenerationResponse):
-                        if response.is_blocked:
-                            error_msg = f"Attempt {attempt + 1} failed: Request blocked due to safety reasons. Errors: {response.errors}"
-                            logger.error(error_msg)
-                            if attempt < self.max_retries - 1:
-                                await asyncio.sleep(self.retry_delay)
-                                continue
-                            else:
-                                return self._build_error_response(error_msg, None)
-
-                        else:
+                    elif isinstance(response, dict): # 检查是否为字典类型
+                        if response.get("choices") and response["choices"][0].get("message"):
                             try:
-                                description_data = json.loads(response.text)
-                                if not all(key in description_data for key in
-                                           ['description', 'is_meme']):  # 只检查必要字段
-                                    raise KeyError(
-                                        "Missing required fields in JSON response")
+                                content = response["choices"][0]["message"]["content"]
+                                description_data = json.loads(content)
+                                if not all(
+                                    key in description_data for key in ["description", "is_meme"]
+                                ):  # 只检查必要字段
+                                    raise KeyError("Missing required fields in JSON response")
                                 return description_data
                             except (json.JSONDecodeError, KeyError) as e:
-                                error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {response.text}"
+                                error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {content}"
                                 logger.error(error_msg)
                                 if attempt < self.max_retries - 1:
                                     await asyncio.sleep(self.retry_delay)
                                     continue
                                 else:
                                     return self._build_error_response(error_msg, 200)
+                        else:
+                            error_msg = f"Attempt {attempt + 1} failed: Invalid response format. Response: {response}"
+                            logger.error(error_msg)
+                            if attempt < self.max_retries - 1:
+                                await asyncio.sleep(self.retry_delay)
+                                continue
+                            else:
+                                return self._build_error_response(error_msg, 200)
                     else:
                         error_msg = f"Attempt {attempt + 1} failed: Unexpected response type: {type(response)}"
                         logger.error(error_msg)
@@ -180,12 +179,15 @@ class ImageProcessor:
                         continue
                     else:
                         logger.error(
-                            f"All attempts to generate image description failed. Last error: {e}")
+                            f"All attempts to generate image description failed. Last error: {e}"
+                        )
                         return self._build_error_response(str(e), None)
         except Exception as e:
             logger.error(f"Error in generate_image_description: {e}")
             return self._build_error_response(str(e), None)
-        return self._build_error_response("All attempts to generate image description failed.", None)
+        return self._build_error_response(
+            "All attempts to generate image description failed.", None
+        )
 
     async def encode_image_to_base64(self, image: Image.Image) -> str:
         buffered = BytesIO()
@@ -196,7 +198,7 @@ class ImageProcessor:
 
     def _build_error_response(self, error_msg: str, status_code: Optional[int]) -> Dict:
         return {
-            'description': "无法生成图片描述",
+            'description': "生成图片描述失败",
             'is_meme': False,
             'emotion_tag': None,
             'error': error_msg,

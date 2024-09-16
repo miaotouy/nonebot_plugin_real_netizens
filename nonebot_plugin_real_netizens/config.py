@@ -43,6 +43,10 @@ class Config(BaseSettings):
         default="gemini-1.5-flash-exp-0827",
         description="用于快速回复的 LLM 模型"
     )
+    VL_LLM_MODEL: str = Field(
+        default="qwen2-vl-7b",
+        description="用于图像识别的多模态 LLM 模型"
+    )
     LLM_MAX_TOKENS: int = Field(
         default=2048,
         description="LLM生成的最大token数"
