@@ -18,12 +18,13 @@ print(f"TEST_GIF_PATH: {os.path.abspath(TEST_GIF_PATH)}")
 print(f"TEST_JPG_PATH: {os.path.abspath(TEST_JPG_PATH)}")
 print(f"TEST_PNG_PATH: {os.path.abspath(TEST_PNG_PATH)}")
 
+# 获取插件的配置
+config = Config()  # 实例化插件的 Config 对象
+image_processor = ImageProcessor(config)
+
+
 @pytest.mark.asyncio
 async def test_process_image():
-    # 获取 NoneBot 的配置
-    driver = get_driver()
-    config = driver.config
-    image_processor = ImageProcessor(config)
 
     # 测试 GIF 图片
     success, gif_info = await image_processor.process_image(TEST_GIF_PATH,
@@ -49,10 +50,6 @@ async def test_process_image():
 
 @pytest.mark.asyncio
 async def test_preprocess_image():
-    # 获取 NoneBot 的配置
-    driver = get_driver()
-    config = driver.config
-    image_processor = ImageProcessor(config)
 
     # 测试 GIF 预处理
     gif_image = await asyncio.to_thread(image_processor.preprocess_image,
@@ -75,10 +72,6 @@ async def test_preprocess_image():
 
 @pytest.mark.asyncio
 async def test_generate_image_description():
-    # 获取 NoneBot 的配置
-    driver = get_driver()
-    config = driver.config
-    image_processor = ImageProcessor(config)
 
     # 测试 GIF 描述生成
     with Image.open(TEST_GIF_PATH) as gif_image:
@@ -124,4 +117,3 @@ async def test_generate_image_description():
         print(f"状态码: {png_description['status_code']}")
     else:
         print(f"PNG 描述: {png_description}")
-

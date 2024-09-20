@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 from nonebot import get_driver
-from vertexai.language_models import TextGenerationResponse
 
 from .config import Config
 
@@ -83,13 +82,10 @@ class LLMGenerator:
             logger.error(f"API request error: {e}")
             return None
 
-    def process_response(self, data: Dict[str, Any]) -> Optional[TextGenerationResponse]:
+
+    def process_response(self, data: Dict[str, Any]) -> Optional[str]:
         if data and 'choices' in data and len(data['choices']) > 0:
-            # 如果设置了 response_schema，则返回完整的 TextGenerationResponse 对象
-            if "generation_config" in data and "response_schema" in data["generation_config"]:
-                return TextGenerationResponse.from_json(json.dumps(data))
-            else:
-                return data['choices'][0]['message']['content']  # 不返回 TextGenerationResponse 对象
+            return data['choices'][0]['message']['content']
         else:
             logger.warning("No valid content in API response")
             return None

@@ -1,3 +1,4 @@
+# nonebot_plugin_real_netizens\image_processor.py
 import asyncio
 import base64
 import json
@@ -12,8 +13,6 @@ from nonebot.log import logger
 from .config import Config
 from .db.models import Image as DBImage  # 避免与 PIL.Image 冲突
 from .llm_generator import llm_generator
-from vertexai.generative_models import GenerationConfig
-from vertexai.language_models import TextGenerationResponse
 
 
 class ImageProcessor:
@@ -112,7 +111,7 @@ class ImageProcessor:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "这是一张图片,请描述它。"},
+                        {"type": "text", "text": f"{system_message}"},
                         {
                             "type": "image_url",
                             "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
@@ -138,40 +137,31 @@ class ImageProcessor:
                             continue
                         else:
                             return self._build_error_response(error_msg, None)
-                    elif isinstance(response, dict): # 检查是否为字典类型
-                        if response.get("choices") and response["choices"][0].get("message"):
-                            try:
-                                content = response["choices"][0]["message"]["content"]
-                                description_data = json.loads(content)
-                                if not all(
-                                    key in description_data for key in ["description", "is_meme"]
-                                ):  # 只检查必要字段
-                                    raise KeyError("Missing required fields in JSON response")
-                                return description_data
-                            except (json.JSONDecodeError, KeyError) as e:
-                                error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {content}"
-                                logger.error(error_msg)
-                                if attempt < self.max_retries - 1:
-                                    await asyncio.sleep(self.retry_delay)
-                                    continue
-                                else:
-                                    return self._build_error_response(error_msg, 200)
+                    
+                    # 尝试提取 JSON 对象
+                    try:
+                        first_brace_index = response.find("{")
+                        last_brace_index = response.rfind("}")
+                        if first_brace_index != -1 and last_brace_index != -1:
+                            json_string = response[first_brace_index : last_brace_index + 1]
+                            description_data = json.loads(json_string)
+
+                            if not all(
+                                key in description_data for key in ["description", "is_meme"]
+                            ):  # 只检查必要字段
+                                raise KeyError("Missing required fields in JSON response")
+                            return description_data
                         else:
-                            error_msg = f"Attempt {attempt + 1} failed: Invalid response format. Response: {response}"
-                            logger.error(error_msg)
-                            if attempt < self.max_retries - 1:
-                                await asyncio.sleep(self.retry_delay)
-                                continue
-                            else:
-                                return self._build_error_response(error_msg, 200)
-                    else:
-                        error_msg = f"Attempt {attempt + 1} failed: Unexpected response type: {type(response)}"
+                            raise ValueError("No valid JSON object found in response")
+                    except (json.JSONDecodeError, KeyError, ValueError) as e:
+                        error_msg = f"Attempt {attempt + 1} failed: JSON decode error or missing fields: {e}. Response: {response}"
                         logger.error(error_msg)
                         if attempt < self.max_retries - 1:
                             await asyncio.sleep(self.retry_delay)
                             continue
                         else:
-                            return self._build_error_response(error_msg, None)
+                            return self._build_error_response(error_msg, 200)
+
 
                 except RuntimeError as e:
                     if attempt < self.max_retries - 1:

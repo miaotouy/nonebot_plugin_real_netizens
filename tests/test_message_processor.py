@@ -10,7 +10,7 @@ def processor():
 async def mock_image():
     from nonebot_plugin_txt2img import Txt2Img
     txt2img = Txt2Img()
-    image_bytes = await txt2img.draw("Test Image")
+    image_bytes = await txt2img.draw("Test Image", "Test Image2")
     return f"base64://{image_bytes.getvalue().decode()}"
 @pytest.mark.asyncio
 async def test_process_message(app: App, group_message_event: GroupMessageEvent, processor, mocker, mock_image):

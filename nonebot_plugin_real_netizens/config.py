@@ -1,7 +1,7 @@
 # nonebot_plugin_real_netizens\config.py
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from nonebot import get_driver
 from nonebot.log import logger
@@ -194,7 +194,7 @@ class Config(BaseSettings):
     )
 
     @classmethod
-    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml", new_config: dict = None) -> "Config":
+    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml", new_config: Optional[dict] = None) -> "Config":
         """从 YAML 文件加载配置，并可选地写入新的配置。"""
         yaml = YAML()
         yaml.indent(mapping=2, sequence=4, offset=2)
@@ -250,14 +250,11 @@ class Config(BaseSettings):
 
         return config
 
-
-
-
     @property
     def LOG_FILE_PATH(self) -> str:
         return str(self.LOG_DIR / self.LOG_FILE_NAME)
 
-    class Config:
+    class Config:  # type: ignore
         extra = "allow"
 
 

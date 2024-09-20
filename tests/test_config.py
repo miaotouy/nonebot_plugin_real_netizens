@@ -66,5 +66,3 @@ def test_invalid_config():
         Config.parse_obj({"LLM_TEMPERATURE": 2.5})  # 超出范围
     with pytest.raises(ValueError):
         Config.parse_obj({"TRIGGER_PROBABILITY": -0.1})  # 超出范围
-
-

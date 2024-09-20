@@ -5,18 +5,23 @@ from nonebug import App
 from nonebot.adapters.onebot.v11 import Bot, Event
 from nonebot_plugin_real_netizens.character_manager import CharacterManager
 from nonebot_plugin_real_netizens.group_config_manager import group_config_manager
+
+
 # 将 fixture 作用域更改为 "session"
 @pytest.fixture(scope="session")
 async def character_manager():
-    # 创建 CharacterManager 实例
-    manager = CharacterManager()
+    # 创建 CharacterManager 实例，并传入 group_config_manager
+    manager = CharacterManager(group_config_manager)
     # 加载角色数据
     await manager.load_characters()
     return manager
+
+
 @pytest.mark.asyncio
-async def test_get_character_info(app: App, character_manager: CharacterManager, mocker, bot: Bot, event:Event):
+async def test_get_character_info(app: App, character_manager: CharacterManager, mocker, bot: Bot, event: Event):
     # 模拟 group_config_manager
-    mock_group_config = mocker.patch.object(group_config_manager, "get_group_config")
+    mock_group_config = mocker.patch.object(
+        group_config_manager, "get_group_config")
     mock_group_config.return_value.character_id = "test_character"
     # 使用 mocker 模拟 character_card_loader 的行为
     mock_character_card_loader = mocker.patch(
@@ -104,17 +109,12 @@ async def test_get_character_worldbooks(app: App, character_manager):
 
 
 @pytest.mark.asyncio
-async def test_on_config_change(app: App, character_manager):
-    character_manager.character_cache[123] = {"name": "Cached Character"}
-    character_manager.on_config_change(123)
-    assert 123 not in character_manager.character_cache
-
-@pytest.mark.asyncio
 async def test_on_config_change(app: App, character_manager: CharacterManager, mocker):
     # 模拟群组配置变化
     group_id = 123
     new_character_id = "new_character"
-    mock_group_config = mocker.patch.object(group_config_manager, "get_group_config")
+    mock_group_config = mocker.patch.object(
+        group_config_manager, "get_group_config")
     mock_group_config.return_value.character_id = new_character_id
     # 预先设置缓存
     character_manager.character_cache[group_id] = {"name": "Old Character"}
