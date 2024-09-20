@@ -12,8 +12,7 @@ def test_config_file(tmpdir_factory):
     config_dir = os.path.join(os.path.dirname(__file__), "test_config")
     os.makedirs(config_dir, exist_ok=True)
     config_file = os.path.join(config_dir, "test_friend_config.yml")
-    config = Config()
-    config.from_yaml(config_file)
+    Config.from_yaml(config_file, write_config=False)
     return config_file
 
 
@@ -25,7 +24,7 @@ def test_config_write_to_yaml(test_config_file):
         "ENABLED_GROUPS": [123456789],
         "RES_PATH": os.path.dirname(test_config_file),
     }
-    config = Config.from_yaml(test_config_file, new_config=new_config)
+    config = Config.from_yaml(test_config_file, new_config=new_config, write_config=True)
 
     # 重新加载配置
     loaded_config = Config.from_yaml(test_config_file)
@@ -45,8 +44,8 @@ def test_config_load_and_write_unchanged(test_config_file):
     modified_config = {
         "LLM_MODEL": "initial_model",
         "TRIGGER_PROBABILITY": 0.5,
-        "ENABLED_GROUPS": [111654111],
-        "SUPERUSERS": [112168711],
+        "ENABLED_GROUPS": [111654111,114514666],
+        "SUPERUSERS": [112168711,5141919],
         "DEFAULT_CHARACTER_ID": "114514",
     }
     config = Config.from_yaml(test_config_file, new_config=modified_config)

@@ -1,12 +1,12 @@
 # nonebot_plugin_real_netizens\config.py
-import os
+
 from pathlib import Path
-from typing import List, Optional
+import os
+from typing import Any, Dict, List, Optional
 
 from nonebot import get_driver
 from nonebot.log import logger
 from pydantic import BaseSettings, Field
-from ruamel.yaml import YAML
 
 
 class Config(BaseSettings):
@@ -194,59 +194,30 @@ class Config(BaseSettings):
     )
 
     @classmethod
-    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml", new_config: Optional[dict] = None) -> "Config":
-        """从 YAML 文件加载配置，并可选地写入新的配置。"""
-        yaml = YAML()
-        yaml.indent(mapping=2, sequence=4, offset=2)
-
-        # 使用默认配置初始化
+    def from_yaml(cls, file_path: str = "nonebot_plugin_real_netizens/config/friend_config.yml", new_config: Optional[dict] = None, write_config: bool = False) -> "Config":
         config = cls()
 
-        # 尝试加载 YAML 文件
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                yaml_data = yaml.load(f)
-                # 使用 YAML 数据更新配置
-                for key, value in yaml_data.items():
-                    if key in config.__fields__:
-                        setattr(config, key, value)
-        except FileNotFoundError:
-            logger.warning(f"配置文件 {file_path} 未找到，使用默认配置。")
-        except Exception as e:
-            logger.error(f"解析配置文件 {file_path} 时出错：{e}")
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                yaml_data = {}
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        key, value = line.split(':', 1)
+                        yaml_data[key.strip()] = value.strip()
 
-        # 使用 new_config 更新配置 (如果提供)
+            for key, value in yaml_data.items():
+                if key in config.__fields__:
+                    setattr(config, key, value)
+
         if new_config:
             for key, value in new_config.items():
                 if key in config.__fields__:
                     setattr(config, key, value)
 
-        # 最后更新环境变量，这将覆盖默认配置、YAML 配置和 new_config
-        env_config = cls.parse_obj(os.environ)
-        for field in ["LLM_API_KEY", "LLM_API_BASE"]:  # 只覆盖敏感参数
-            if field in env_config.__dict__:
-                setattr(config, field, getattr(env_config, field))
-
-        # 处理 LOG_DIR 路径，将其转换为绝对路径
-        config.LOG_DIR = Path(os.path.abspath(os.path.join(
-            os.path.dirname(file_path), str(config.LOG_DIR))))
-
-        # 将当前配置写回 YAML 文件（不包括 API 配置）
-        try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                schema = cls.schema()
-                for field_name, field_data in schema["properties"].items():
-                    if field_name not in ["LLM_API_KEY", "LLM_API_BASE"]:
-                        value = getattr(config, field_name)
-                        if field_name == "LOG_DIR":
-                            value = str(value)
-                        yaml.dump({field_name: value}, f)
-                        # 向yaml添加注释
-                        if "description" in field_data:
-                            f.seek(0, os.SEEK_END)
-                            f.write(f"  # {field_data['description']}\n")
-        except Exception as e:
-            print(f"写入配置文件时出错：{e}")
+        if write_config:
+            update_yaml_config(file_path, {field: getattr(
+                config, field) for field in config.__fields__})
 
         return config
 
@@ -254,13 +225,55 @@ class Config(BaseSettings):
     def LOG_FILE_PATH(self) -> str:
         return str(self.LOG_DIR / self.LOG_FILE_NAME)
 
-    class Config:  # type: ignore
+    class Config:  # type: ignore # noqa: F811
         extra = "allow"
 
 
-def get_plugin_config() -> Config:
-    return plugin_config
+def update_yaml_config(file_path: str, new_config: Dict[str, Any]):
+    # 读取现有配置
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    else:
+        lines = []
+
+    # 创建一个新的配置内容
+    new_lines = []
+    processed_keys = set()
+
+    # 处理现有行
+    for line in lines:
+        line = line.strip()
+        if line.startswith('#') or not line:
+            new_lines.append(line)
+        else:
+            key = line.split(':')[0].strip()
+            if key in new_config:
+                new_lines.append(f"# {new_config[key].field_info.description}")
+                new_lines.append(f"{key}: {format_value(new_config[key])}")
+                processed_keys.add(key)
+            else:
+                new_lines.append(line)
+
+    # 添加新的配置项
+    for key, value in new_config.items():
+        if key not in processed_keys:
+            new_lines.append(f"# {value.field_info.description}")
+            new_lines.append(f"{key}: {format_value(value)}")
+
+    # 写入文件
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(new_lines))
+
+
+def format_value(value: Any) -> str:
+    if isinstance(value, list):
+        return '\n  - ' + '\n  - '.join(map(str, value))
+    elif isinstance(value, str):
+        return f"'{value}'"
+    else:
+        return str(value)
 
 
 # 全局配置对象
-plugin_config: Config = Config.from_yaml()  # 使用类型提示
+plugin_config: Config = Config.from_yaml()

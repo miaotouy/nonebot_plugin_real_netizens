@@ -50,7 +50,6 @@ class LLMGenerator:
         # 如果是 Gemini 系列模型，添加安全设置
         if "gemini" in model.lower():
             payload["safety_settings"] = [
-                {"category": "HARM_CATEGORY_DANGEROUS", "threshold": "BLOCK_NONE"},
                 {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                 {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
                 {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},

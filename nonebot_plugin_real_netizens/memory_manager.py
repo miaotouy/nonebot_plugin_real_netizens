@@ -10,14 +10,14 @@ from nonebot.log import logger
 from nonebot_plugin_datastore import get_session
 from sqlalchemy import desc, select
 
-from .config import get_plugin_config
+from .config import Config
 from .db.models import Impression, Message
 
 
 class MemoryManager:
     def __init__(self):
         self.bot_id = None
-        self.config = get_plugin_config()
+        self.config = Config()
         self.message_cache = defaultdict(list)
         self.impression_cache = {}
         self.cache_expiry = timedelta(minutes=30)  # 缓存过期时间
@@ -125,7 +125,6 @@ class MemoryManager:
                         content=new_impression
                     )
                     session.add(impression)
-                impression.updated_at = datetime.utcnow()
                 await session.commit()
             # 更新缓存
             self.impression_cache[(
