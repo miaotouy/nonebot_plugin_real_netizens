@@ -1,6 +1,6 @@
 # nonebot_plugin_real_netizens\db\models.py
 from datetime import datetime, timezone
-from nonebot_plugin_datastore import get_plugin_data, get_session
+from nonebot_plugin_datastore import get_plugin_data
 from sqlalchemy import (
     Boolean,
     Column,
@@ -10,11 +10,9 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    select,
 )
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import declarative_base, relationship
-from typing import Dict, Optional
 # 使用 declarative_base() 定义基类
 Base = declarative_base()
 # 定义模型类
@@ -76,7 +74,8 @@ class Message(Base):
     group_id = Column(Integer, ForeignKey("real_netizens_groups.group_id"))
     user_id = Column(Integer, ForeignKey("real_netizens_users.user_id"))
     content = Column(Text)
-    timestamp = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    timestamp = Column(DateTime, default=datetime.now(
+        timezone.utc), index=True)
     group = relationship("Group", back_populates="messages")
     user = relationship("User", back_populates="messages")
 
@@ -108,7 +107,6 @@ class Image(Base):
     is_meme = Column(Boolean, default=False)
     emotion_tag = Column(String(255))  # 添加 emotion_tag 字段
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-
 
 
 class GroupConfig(Base):
